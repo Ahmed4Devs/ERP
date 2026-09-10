@@ -1,0 +1,23 @@
+{
+    "agents": [
+        "claude_code",
+        "cursor",
+        "junie",
+        "opencode",
+        "zed"
+    ],
+    "cloud": true,
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch": false,
+    "sail": false,
+    "skills": [
+        "infer-conventions",
+        "deploying-to-cloud",
+        "fortify-development",
+        "laravel-best-practices",
+        "testing-best-practices",
+        "wayfinder-development",
+        "tailwindcss-development"
+    ]
+}
