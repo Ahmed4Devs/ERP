@@ -2,6 +2,7 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextSwitcher } from '@/components/erp/context-switcher';
 import { LocaleSwitcher } from '@/components/erp/locale-switcher';
+import { ThemeDropdown } from '@/components/theme-dropdown';
 import type { BreadcrumbItem as BreadcrumbItemType } from '@/types';
 
 export function AppSidebarHeader({
@@ -19,6 +20,7 @@ export function AppSidebarHeader({
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <ContextSwitcher />
                 <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
+                <ThemeDropdown />
                 <LocaleSwitcher />
             </div>
         </header>
