@@ -69,15 +69,15 @@ export function ContextSwitcher() {
             {/* Active Company & Branch Switcher Dropdown */}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9 gap-2 px-3 border-neutral-200 dark:border-neutral-800">
-                        <Building2 className="h-4 w-4 text-neutral-500" />
-                        <div className="flex flex-col items-start text-xs leading-none">
-                            <span className="font-semibold">{currentCompany?.name || t('app.noActiveCompany')}</span>
+                    <Button variant="outline" size="sm" className="h-9 gap-2 px-3 border-neutral-200 dark:border-neutral-800 max-w-[180px] sm:max-w-[240px] text-left rtl:text-right">
+                        <Building2 className="h-4 w-4 text-neutral-500 shrink-0" />
+                        <div className="flex flex-col items-start min-w-0 text-xs leading-tight truncate">
+                            <span className="font-semibold truncate max-w-full">{currentCompany?.name || t('app.noActiveCompany')}</span>
                             {currentBranch && (
-                                <span className="text-[10px] text-neutral-500 mt-0.5">{currentBranch.name}</span>
+                                <span className="text-[10px] text-neutral-500 truncate max-w-full">{currentBranch.name}</span>
                             )}
                         </div>
-                        <ChevronDown className="h-3 w-3 opacity-50 ml-1" />
+                        <ChevronDown className="h-3 w-3 opacity-50 ml-auto shrink-0" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64">

@@ -25,6 +25,7 @@ use App\Modules\Manufacturing\Http\Controllers\ProductionOrderController;
 use App\Modules\MasterData\Http\Controllers\PartyController;
 use App\Modules\Payroll\Http\Controllers\PayrollRunController;
 use App\Modules\Platform\Http\Controllers\ContextController;
+use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Projects\Http\Controllers\ProjectController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
@@ -44,7 +45,7 @@ Route::inertia('/', 'welcome')->name('home');
 Route::post('/switch-locale', [ContextController::class, 'switchLocale'])->name('context.locale');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     // Tenancy & Organization Context Switching
     Route::post('/switch-context/tenant', [ContextController::class, 'switchTenant'])->name('context.tenant');

@@ -10,15 +10,15 @@ export function AppSidebarHeader({
     breadcrumbs?: BreadcrumbItemType[];
 }) {
     return (
-        <header className="border-sidebar-border/50 flex h-16 shrink-0 items-center justify-between gap-2 border-b px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-4">
-            <div className="flex items-center gap-2">
-                <SidebarTrigger className="-ml-1" />
+        <header className="border-sidebar-border/60 bg-background/95 backdrop-blur-md sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-4 border-b px-4 md:px-6 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+            <div className="flex items-center gap-2 min-w-0">
+                <SidebarTrigger className="shrink-0" />
                 <Breadcrumbs breadcrumbs={breadcrumbs} />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <ContextSwitcher />
-                <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800" />
+                <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
                 <LocaleSwitcher />
             </div>
         </header>
