@@ -1,9 +1,15 @@
 <?php
 
 use App\Modules\Accounting\Http\Controllers\AccountController;
+use App\Modules\Accounting\Http\Controllers\FiscalPeriodController;
 use App\Modules\Accounting\Http\Controllers\InvoiceController;
 use App\Modules\Accounting\Http\Controllers\ReceiptController;
 use App\Modules\Accounting\Http\Controllers\ReportController;
+use App\Modules\Assets\Http\Controllers\DepreciationController;
+use App\Modules\Assets\Http\Controllers\FixedAssetController;
+use App\Modules\HR\Http\Controllers\AttendanceController;
+use App\Modules\HR\Http\Controllers\DepartmentController;
+use App\Modules\HR\Http\Controllers\EmployeeController;
 use App\Modules\Inventory\Http\Controllers\GoodsReceiptController;
 use App\Modules\Inventory\Http\Controllers\InventoryReportController;
 use App\Modules\Inventory\Http\Controllers\ProductController;
@@ -12,6 +18,7 @@ use App\Modules\Inventory\Http\Controllers\StockMovementController;
 use App\Modules\Inventory\Http\Controllers\StockTransferController;
 use App\Modules\Inventory\Http\Controllers\WarehouseController;
 use App\Modules\MasterData\Http\Controllers\PartyController;
+use App\Modules\Payroll\Http\Controllers\PayrollRunController;
 use App\Modules\Platform\Http\Controllers\ContextController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
@@ -101,6 +108,43 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inventory/adjustments', [StockAdjustmentController::class, 'index'])->name('inventory.adjustments.index');
     Route::get('/inventory/adjustments/create', [StockAdjustmentController::class, 'create'])->name('inventory.adjustments.create');
     Route::post('/inventory/adjustments', [StockAdjustmentController::class, 'store'])->name('inventory.adjustments.store');
+
+    // Human Resources (HR)
+    Route::get('/hr/employees', [EmployeeController::class, 'index'])->name('hr.employees.index');
+    Route::get('/hr/employees/create', [EmployeeController::class, 'create'])->name('hr.employees.create');
+    Route::post('/hr/employees', [EmployeeController::class, 'store'])->name('hr.employees.store');
+    Route::get('/hr/employees/{employee}/edit', [EmployeeController::class, 'edit'])->name('hr.employees.edit');
+    Route::put('/hr/employees/{employee}', [EmployeeController::class, 'update'])->name('hr.employees.update');
+    Route::delete('/hr/employees/{employee}', [EmployeeController::class, 'destroy'])->name('hr.employees.destroy');
+
+    Route::get('/hr/departments', [DepartmentController::class, 'index'])->name('hr.departments.index');
+    Route::post('/hr/departments', [DepartmentController::class, 'storeDepartment'])->name('hr.departments.store');
+    Route::post('/hr/designations', [DepartmentController::class, 'storeDesignation'])->name('hr.designations.store');
+
+    Route::get('/hr/attendances', [AttendanceController::class, 'index'])->name('hr.attendances.index');
+    Route::post('/hr/attendances', [AttendanceController::class, 'store'])->name('hr.attendances.store');
+
+    // Payroll Framework
+    Route::get('/payroll/runs', [PayrollRunController::class, 'index'])->name('payroll.runs.index');
+    Route::get('/payroll/runs/create', [PayrollRunController::class, 'create'])->name('payroll.runs.create');
+    Route::post('/payroll/runs', [PayrollRunController::class, 'store'])->name('payroll.runs.store');
+    Route::get('/payroll/runs/{payrollRun}', [PayrollRunController::class, 'show'])->name('payroll.runs.show');
+    Route::post('/payroll/runs/{payrollRun}/post', [PayrollRunController::class, 'postRun'])->name('payroll.runs.post');
+    Route::post('/payroll/runs/{payrollRun}/disburse', [PayrollRunController::class, 'disburse'])->name('payroll.runs.disburse');
+
+    // Fixed Assets & Depreciation
+    Route::get('/assets/register', [FixedAssetController::class, 'index'])->name('assets.register.index');
+    Route::get('/assets/register/create', [FixedAssetController::class, 'create'])->name('assets.register.create');
+    Route::post('/assets/register', [FixedAssetController::class, 'store'])->name('assets.register.store');
+    Route::get('/assets/register/{fixedAsset}', [FixedAssetController::class, 'show'])->name('assets.register.show');
+
+    Route::get('/assets/depreciation', [DepreciationController::class, 'index'])->name('assets.depreciation.index');
+    Route::post('/assets/depreciation', [DepreciationController::class, 'store'])->name('assets.depreciation.store');
+
+    // Fiscal Periods & Close
+    Route::get('/accounting/periods', [FiscalPeriodController::class, 'index'])->name('accounting.periods.index');
+    Route::post('/accounting/periods', [FiscalPeriodController::class, 'store'])->name('accounting.periods.store');
+    Route::post('/accounting/periods/{fiscalPeriod}/lock', [FiscalPeriodController::class, 'toggleLock'])->name('accounting.periods.toggleLock');
 });
 
 require __DIR__.'/settings.php';

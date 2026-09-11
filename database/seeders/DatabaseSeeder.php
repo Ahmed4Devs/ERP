@@ -5,6 +5,11 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\FiscalPeriod;
+use App\Modules\Assets\Models\AssetCategory;
+use App\Modules\Assets\Models\FixedAsset;
+use App\Modules\HR\Models\Department;
+use App\Modules\HR\Models\Designation;
+use App\Modules\HR\Models\Employee;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\ProductCategory;
 use App\Modules\Inventory\Models\UnitOfMeasure;
@@ -43,6 +48,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'accounting.invoice.post', 'description' => 'Post Accounting Invoices', 'module' => 'Accounting'],
             ['name' => 'accounting.receipt.post', 'description' => 'Post Receipts', 'module' => 'Accounting'],
             ['name' => 'accounting.report.view', 'description' => 'View Financial Reports', 'module' => 'Accounting'],
+            ['name' => 'accounting.period.manage', 'description' => 'Manage Fiscal Periods and Locks', 'module' => 'Accounting'],
             ['name' => 'purchasing.order.view', 'description' => 'View Purchase Orders', 'module' => 'Purchasing'],
             ['name' => 'purchasing.order.manage', 'description' => 'Manage Purchase Orders', 'module' => 'Purchasing'],
             ['name' => 'purchasing.bill.view', 'description' => 'View Vendor Bills', 'module' => 'Purchasing'],
@@ -61,6 +67,13 @@ class DatabaseSeeder extends Seeder
             ['name' => 'inventory.adjustment.view', 'description' => 'View Stock Adjustments', 'module' => 'Inventory'],
             ['name' => 'inventory.adjustment.post', 'description' => 'Post Stock Adjustments', 'module' => 'Inventory'],
             ['name' => 'inventory.valuation.view', 'description' => 'View Inventory Valuation Report', 'module' => 'Inventory'],
+            ['name' => 'hr.employee.view', 'description' => 'View Employees & Departments', 'module' => 'HR'],
+            ['name' => 'hr.employee.manage', 'description' => 'Manage Employees & Attendance', 'module' => 'HR'],
+            ['name' => 'payroll.run.view', 'description' => 'View Payroll Runs & Payslips', 'module' => 'Payroll'],
+            ['name' => 'payroll.run.post', 'description' => 'Post & Disburse Payroll Runs', 'module' => 'Payroll'],
+            ['name' => 'assets.register.view', 'description' => 'View Fixed Assets Register', 'module' => 'Assets'],
+            ['name' => 'assets.register.manage', 'description' => 'Manage Fixed Assets & Categories', 'module' => 'Assets'],
+            ['name' => 'assets.depreciation.post', 'description' => 'Post Asset Depreciation Runs', 'module' => 'Assets'],
         ];
 
         $permissionModels = [];
@@ -333,6 +346,9 @@ class DatabaseSeeder extends Seeder
 
         // 5. Seed Inventory Master Data
         $this->seedInventoryMasterData($tenantA, $companyA1, $branchA1, $branchA2);
+
+        // 6. Seed Workforce & Asset Master Data
+        $this->seedWorkforceAndAssetMasterData($tenantA, $companyA1, $branchA1);
     }
 
     private function seedCompanyAccountsAndPeriods(Tenant $tenant, Company $company): void
@@ -353,14 +369,21 @@ class DatabaseSeeder extends Seeder
             ['code' => '1150', 'name' => 'Test Tax Recoverable (Input Tax 10%)', 'name_ar' => 'ضريبة الاختبار المستردة (مدخلات 10%)', 'type' => 'asset', 'subtype' => 'tax_receivable', 'is_system' => true],
             ['code' => '1200', 'name' => 'Accounts Receivable Control', 'name_ar' => 'الذمم المدينة (العملاء)', 'type' => 'asset', 'subtype' => 'receivable', 'is_system' => true],
             ['code' => '1300', 'name' => 'Merchandise Inventory', 'name_ar' => 'مخزون بضاعة بالمستودع', 'type' => 'asset', 'subtype' => 'inventory', 'is_system' => true],
+            ['code' => '1500', 'name' => 'Fixed Assets - Equipment & Tech', 'name_ar' => 'الأصول الثابتة - المعدات والتقنية', 'type' => 'asset', 'subtype' => 'fixed_asset'],
+            ['code' => '1590', 'name' => 'Accumulated Depreciation', 'name_ar' => 'مجمع الإهلاك المتراكم', 'type' => 'asset', 'subtype' => 'contra_asset'],
             ['code' => '2010', 'name' => 'Accounts Payable Control', 'name_ar' => 'الذمم الدائنة (الموردين)', 'type' => 'liability', 'subtype' => 'payable', 'is_system' => true],
             ['code' => '2020', 'name' => 'GRNI Clearing (Goods Received Not Invoiced)', 'name_ar' => 'حساب وسيط استلام بضائع غير مفوترة', 'type' => 'liability', 'subtype' => 'clearing', 'is_system' => true],
+            ['code' => '2030', 'name' => 'Accrued Salaries & Payroll Payable', 'name_ar' => 'مستحقات الرواتب والأجور الدائنة', 'type' => 'liability', 'subtype' => 'payroll_payable', 'is_system' => true],
+            ['code' => '2040', 'name' => 'Social Insurance / GOSI Payable', 'name_ar' => 'مخصص التأمينات الاجتماعية المستحقة', 'type' => 'liability', 'subtype' => 'tax_payable', 'is_system' => true],
             ['code' => '2150', 'name' => 'Test Tax Liability (10%)', 'name_ar' => 'مخصص ضريبة الاختبار (10%)', 'type' => 'liability', 'subtype' => 'tax_payable', 'is_system' => true],
             ['code' => '3010', 'name' => 'Share Capital', 'name_ar' => 'رأس المال المدفوع', 'type' => 'equity', 'subtype' => 'equity'],
             ['code' => '4100', 'name' => 'Consulting & Service Revenue', 'name_ar' => 'إيرادات الخدمات والاستشارات', 'type' => 'revenue', 'subtype' => 'operating_revenue'],
             ['code' => '5000', 'name' => 'Cost of Goods Sold (COGS)', 'name_ar' => 'تكلفة البضاعة المباعة', 'type' => 'expense', 'subtype' => 'cost_of_sales', 'is_system' => true],
             ['code' => '5100', 'name' => 'General & Administrative Expenses', 'name_ar' => 'المصروفات العمومية والإدارية', 'type' => 'expense', 'subtype' => 'operating_expense'],
+            ['code' => '5110', 'name' => 'Salaries & Wages Expense', 'name_ar' => 'مصروفات الرواتب والأجور', 'type' => 'expense', 'subtype' => 'operating_expense'],
+            ['code' => '5120', 'name' => 'Employee Allowances & Benefits', 'name_ar' => 'مصروفات البدلات والمزايا', 'type' => 'expense', 'subtype' => 'operating_expense'],
             ['code' => '5200', 'name' => 'IT & Software Expenses', 'name_ar' => 'مصروفات تقنية المعلومات والبرمجيات', 'type' => 'expense', 'subtype' => 'operating_expense'],
+            ['code' => '5300', 'name' => 'Depreciation Expense', 'name_ar' => 'مصروف إهلاك الأصول الثابتة', 'type' => 'expense', 'subtype' => 'depreciation'],
             ['code' => '5900', 'name' => 'Inventory Variance & Adjustments', 'name_ar' => 'فروقات وتسويات المخزون', 'type' => 'expense', 'subtype' => 'inventory_adjustment', 'is_system' => false],
         ];
 
@@ -515,6 +538,142 @@ class DatabaseSeeder extends Seeder
                 'grni_account_id' => $grniAcc?->id,
                 'tax_rate' => '0.100000',
                 'is_active' => true,
+            ]
+        );
+    }
+
+    private function seedWorkforceAndAssetMasterData(Tenant $tenant, Company $company, Branch $branch): void
+    {
+        // 1. Departments
+        $deptIT = Department::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'DEP-IT'],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'Information Technology',
+                'name_ar' => 'قسم تقنية المعلومات',
+                'is_active' => true,
+            ]
+        );
+
+        $deptOps = Department::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'DEP-OPS'],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'Operations & Logistics',
+                'name_ar' => 'قسم العمليات واللوجستيات',
+                'is_active' => true,
+            ]
+        );
+
+        // 2. Designations
+        $desDev = Designation::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'DES-DEV'],
+            [
+                'tenant_id' => $tenant->id,
+                'title' => 'Senior Software Engineer',
+                'title_ar' => 'مهندس برمجيات أول',
+                'description' => 'Core application development',
+                'is_active' => true,
+            ]
+        );
+
+        $desMgr = Designation::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'DES-MGR'],
+            [
+                'tenant_id' => $tenant->id,
+                'title' => 'Operations Manager',
+                'title_ar' => 'مدير العمليات',
+                'description' => 'Overseeing warehouse and distribution',
+                'is_active' => true,
+            ]
+        );
+
+        // 3. Employee
+        $emp1 = Employee::firstOrCreate(
+            ['company_id' => $company->id, 'employee_number' => 'EMP-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branch->id,
+                'department_id' => $deptIT->id,
+                'designation_id' => $desDev->id,
+                'first_name' => 'Zaid',
+                'last_name' => 'Al-Harbi',
+                'first_name_ar' => 'زيد',
+                'last_name_ar' => 'الحربي',
+                'email' => 'zaid.harbi@alamal.com',
+                'phone' => '+966551234567',
+                'national_id' => '1088776655',
+                'hire_date' => '2026-01-01',
+                'status' => 'active',
+                'basic_salary' => '12000.000000',
+                'housing_allowance' => '3000.000000',
+                'transport_allowance' => '1000.000000',
+                'other_allowances' => '500.000000',
+                'bank_name' => 'Al-Rajhi Bank',
+                'iban' => 'SA0380000000608010167519',
+            ]
+        );
+
+        // Set manager of DEP-IT
+        if (! $deptIT->manager_id) {
+            $deptIT->update(['manager_id' => $emp1->id]);
+        }
+
+        // 4. Asset Categories
+        $fixedAssetAcc = Account::where('company_id', $company->id)->where('code', '1500')->first();
+        $accumDeprAcc = Account::where('company_id', $company->id)->where('code', '1590')->first();
+        $deprExpAcc = Account::where('company_id', $company->id)->where('code', '5300')->first();
+
+        $catIT = AssetCategory::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'AST-IT'],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'IT & Network Infrastructure',
+                'name_ar' => 'أجهزة وتقنية الشبكات',
+                'depreciation_method' => 'straight_line',
+                'useful_life_months' => 48,
+                'asset_account_id' => $fixedAssetAcc?->id,
+                'accumulated_depreciation_account_id' => $accumDeprAcc?->id,
+                'depreciation_expense_account_id' => $deprExpAcc?->id,
+            ]
+        );
+
+        $catFurn = AssetCategory::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'AST-FURN'],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'Office Furniture & Fixtures',
+                'name_ar' => 'أثاث وتجهيزات مكتبية',
+                'depreciation_method' => 'straight_line',
+                'useful_life_months' => 60,
+                'asset_account_id' => $fixedAssetAcc?->id,
+                'accumulated_depreciation_account_id' => $accumDeprAcc?->id,
+                'depreciation_expense_account_id' => $deprExpAcc?->id,
+            ]
+        );
+
+        // 5. Fixed Asset
+        FixedAsset::firstOrCreate(
+            ['company_id' => $company->id, 'asset_tag' => 'AST-SRV-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branch->id,
+                'category_id' => $catIT->id,
+                'name' => 'Enterprise Rack Server HPE ProLiant DL380',
+                'name_ar' => 'خادم مركزي برو ليانت DL380 من إتش بي',
+                'serial_number' => 'HPE-SRV-2026-99',
+                'purchase_date' => '2026-01-01',
+                'in_service_date' => '2026-01-01',
+                'acquisition_cost' => '48000.000000',
+                'salvage_value' => '0.000000',
+                'useful_life_months' => 48,
+                'depreciation_method' => 'straight_line',
+                'accumulated_depreciation' => '0.000000',
+                'net_book_value' => '48000.000000',
+                'status' => 'active',
+                'asset_account_id' => $fixedAssetAcc?->id,
+                'accumulated_depreciation_account_id' => $accumDeprAcc?->id,
+                'depreciation_expense_account_id' => $deprExpAcc?->id,
             ]
         );
     }

@@ -16,3 +16,9 @@
 | REQ-PUR-002 | Purchasing | Vendor bill posting with 10% test recoverable tax & payment disbursement allocation | M3 | Verified |
 | REQ-TRS-001 | Treasury | Internal treasury cash/bank fund transfers with balanced double-entry GL | M3 | Verified |
 | REQ-REP-002 | Reports | Accounts Payable Aging report grouped by supplier across 30-day brackets | M3 | Verified |
+| REQ-INV-001 | Inventory | Perpetual moving-average valuation with atomic Goods Receipt & GRNI clearing | M4 | Verified |
+| REQ-INV-002 | Inventory | Internal multi-warehouse stock transfers and physical inventory adjustments | M4 | Verified |
+| REQ-HR-001 | Human Resources | Employee directory, salary components, departments, and attendance tracking | M5 | Verified |
+| REQ-PAY-001 | Payroll | Monthly payroll calculation, 10% GOSI deduction, double-entry GL posting & disbursement | M5 | Verified |
+| REQ-AST-001 | Fixed Assets | Fixed assets register, straight-line depreciation engine with salvage value clamping | M5 | Verified |
+| REQ-ACC-003 | Accounting | Fiscal period locking enforcement preventing backdated postings into closed periods | M5 | Verified |
