@@ -147,6 +147,8 @@ class ContractingClaimController extends Controller
 
     public function show(ContractingClaim $claim): Response
     {
+        abort_if($claim->tenant_id !== app(CurrentTenant::class)->id(), 403);
+
         $claim->load(['project', 'customer', 'invoice.lines', 'items']);
 
         return Inertia::render('Contracting/Claims/Show', [
@@ -156,6 +158,8 @@ class ContractingClaimController extends Controller
 
     public function bill(Request $request, ContractingClaim $claim, ApproveAndBillProgressClaimAction $billAction): RedirectResponse
     {
+        abort_if($claim->tenant_id !== app(CurrentTenant::class)->id(), 403);
+
         $billAction->execute([
             'claim_id' => $claim->id,
             'notes' => $request->notes,

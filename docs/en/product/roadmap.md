@@ -10,4 +10,4 @@
 | M5 — Workforce & Financial Management | HR, attendance, payroll framework, asset register, depreciation, budgets, fiscal close | Asset register, depreciation journal, payroll run | Complete |
 | M6 — Commercial & Service Management | CRM, quotations, project timesheets, recurring contracts, support tickets | Lead conversion, sales quotes & orders, project profitability, contract recurring billing, support SLA tickets | Complete |
 | M7 — Industry & External Packages | Trade & distribution, retail POS, contracting, light manufacturing, localization | Touchscreen Retail POS with perpetual inventory & ZATCA QR, Light Manufacturing BOM & Production Orders, Wholesale Tier Pricing, Contracting Progress Claims & Retention | Complete |
-| M8 — Release Verification | Full regression, ASVS review, backup/restore drills, accessibility verification, audit export | Production release readiness | Planned |
+| M8 — Release Verification | Full regression, ASVS review, backup/restore drills, accessibility verification, audit export | Production release readiness, ledger audit CLI, end-to-end tests | Complete |

@@ -22,3 +22,16 @@
 | REQ-PAY-001 | Payroll | Monthly payroll calculation, 10% GOSI deduction, double-entry GL posting & disbursement | M5 | Verified |
 | REQ-AST-001 | Fixed Assets | Fixed assets register, straight-line depreciation engine with salvage value clamping | M5 | Verified |
 | REQ-ACC-003 | Accounting | Fiscal period locking enforcement preventing backdated postings into closed periods | M5 | Verified |
+| REQ-CRM-001 | Commercial CRM | Lead tracking and atomic qualification-to-party conversion | M6 | Verified |
+| REQ-SLS-001 | Sales | Quotations and conversion to confirmed Sales Orders | M6 | Verified |
+| REQ-PRJ-001 | Projects | Project timesheet tracking and profitability ledger calculation | M6 | Verified |
+| REQ-CNT-001 | Contracts | Recurring contract billing invoice generation | M6 | Verified |
+| REQ-SUP-001 | Support | Support ticket SLA tracking and resolution workflow | M6 | Verified |
+| REQ-POS-001 | Retail POS | Shift/session cash drawer control, touchscreen POS, cash/card tender | M7 | Verified |
+| REQ-ZAT-001 | Localization | ZATCA Phase 1 E-Invoicing TLV Base64 QR code generation | M7 | Verified |
+| REQ-MFG-001 | Manufacturing | Bill of Materials (BOM) & Production Order material rollup & receipt | M7 | Verified |
+| REQ-TRD-001 | Trade | Wholesale tiered volume pricing resolver | M7 | Verified |
+| REQ-CON-001 | Contracting | Percentage-of-completion progress claims with 5% retention withholding | M7 | Verified |
+| REQ-REL-001 | Release | End-to-end multi-module enterprise lifecycle regression verification | M8 | Verified |
+| REQ-SEC-001 | Security | OWASP ASVS 4.0 cross-tenant isolation and negative permission boundary tests | M8 | Verified |
+| REQ-OPS-001 | Operations | Automated ledger audit CLI and database backup verification drill | M8 | Verified |

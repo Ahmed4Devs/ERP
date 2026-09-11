@@ -17,8 +17,18 @@
 ### 3. الأمان والحماية (Security)
 - [نموذج التهديدات والضوابط الأمنية](security/model.md)
 - [مصفوفة الأدوار والصلاحيات (RBAC)](security/permissions.md)
+- [تقرير التحقق الأمني وفق معيار ASVS 4.0](security/verification.md)
 
-### 4. المنتج وخارطة الطريق (Product & Roadmap)
-- [مصفوفة تتبع المتطلبات](product/requirements.md)
+### 4. جودة المنتج والتحقق (Product & Quality)
+- [مصفوفة تتبع المتطلبات والمطابقة](product/requirements.md)
 - [خارطة طريق تنفيذ المنتج](product/roadmap.md)
+- [مصفوفة ضمان الجودة واختبارات القبول](quality/acceptance.md)
 - [مسرد المصطلحات المعيارية](glossary.md)
+
+### 5. التشغيل والجاهزية (Operations & Runbooks)
+- [دليل النشر والجاهزية للبيئة الإنتاجية](operations/deployment.md)
+- [النسخ الاحتياطي والتعافي من الكوارث وتجارب الاستعادة](operations/backup-restore.md)
+- [دليل المراقبة وفحص السلامة والجاهزية التشغيلية](operations/monitoring.md)
+
+### 6. الإصدارات والاعتماد (Releases)
+- [مصفوفة التحقق الشامل للإصدار v1.0.0-GA](releases/release-matrix.md)

@@ -102,6 +102,8 @@ class BomController extends Controller
 
     public function show(BillOfMaterial $bom): Response
     {
+        abort_if($bom->tenant_id !== app(CurrentTenant::class)->id(), 403);
+
         $bom->load(['product.unit', 'items.product.unit', 'productionOrders']);
 
         return Inertia::render('Manufacturing/BOM/Show', [

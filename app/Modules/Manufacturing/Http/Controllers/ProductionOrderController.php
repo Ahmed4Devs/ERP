@@ -123,6 +123,8 @@ class ProductionOrderController extends Controller
 
     public function show(ProductionOrder $order): Response
     {
+        abort_if($order->tenant_id !== app(CurrentTenant::class)->id(), 403);
+
         $order->load(['bom', 'finishedProduct', 'sourceWarehouse', 'destinationWarehouse', 'items.product.unit']);
 
         return Inertia::render('Manufacturing/ProductionOrders/Show', [
@@ -132,6 +134,8 @@ class ProductionOrderController extends Controller
 
     public function complete(Request $request, ProductionOrder $order, CompleteProductionOrderAction $completeAction): RedirectResponse
     {
+        abort_if($order->tenant_id !== app(CurrentTenant::class)->id(), 403);
+
         $validated = $request->validate([
             'produced_quantity' => 'nullable|numeric|min:0.0001',
             'completion_date' => 'nullable|date',

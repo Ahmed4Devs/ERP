@@ -109,6 +109,8 @@ class PriceListController extends Controller
 
     public function show(PriceList $priceList): Response
     {
+        abort_if($priceList->tenant_id !== app(CurrentTenant::class)->id(), 403);
+
         $priceList->load(['items.product.unit']);
 
         return Inertia::render('Trade/PriceLists/Show', [

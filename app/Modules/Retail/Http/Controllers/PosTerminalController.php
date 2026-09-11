@@ -76,6 +76,8 @@ class PosTerminalController extends Controller
 
     public function terminal(PosTerminal $terminal): Response
     {
+        abort_if($terminal->tenant_id !== app(CurrentTenant::class)->id(), 403);
+
         $companyId = app(CurrentCompany::class)->id();
 
         $terminal->load(['branch', 'warehouse', 'cashAccount']);
