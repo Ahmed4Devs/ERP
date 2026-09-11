@@ -12,3 +12,7 @@
 | REQ-MST-001 | Master Data | Parties management (Customers & Vendors) with company-specific profiles | M1 | Verified |
 | REQ-ACC-001 | Accounting | Atomic posting engine with exact numeric precision (`NUMERIC(24,6)`) | M2 | Verified |
 | REQ-ACC-002 | Accounting | Service invoice to partial receipt allocation | M2 | Verified |
+| REQ-PUR-001 | Purchasing | Purchase Order lifecycle with approval workflow and vendor bill matching | M3 | Verified |
+| REQ-PUR-002 | Purchasing | Vendor bill posting with 10% test recoverable tax & payment disbursement allocation | M3 | Verified |
+| REQ-TRS-001 | Treasury | Internal treasury cash/bank fund transfers with balanced double-entry GL | M3 | Verified |
+| REQ-REP-002 | Reports | Accounts Payable Aging report grouped by supplier across 30-day brackets | M3 | Verified |

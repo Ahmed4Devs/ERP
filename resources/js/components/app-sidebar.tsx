@@ -1,5 +1,19 @@
 import { Link } from '@inertiajs/react';
-import { Banknote, BarChart3, BookOpen, FolderGit2, Landmark, LayoutGrid, ReceiptText, Users } from 'lucide-react';
+import {
+    ArrowLeftRight,
+    Banknote,
+    BarChart3,
+    BookOpen,
+    CalendarClock,
+    CreditCard,
+    FileText,
+    FolderGit2,
+    Landmark,
+    LayoutGrid,
+    ReceiptText,
+    ShoppingBag,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -47,6 +61,26 @@ export function AppSidebar() {
             icon: Banknote,
         },
         {
+            title: t('nav.purchaseOrders', 'Purchase Orders'),
+            href: '/purchase-orders',
+            icon: ShoppingBag,
+        },
+        {
+            title: t('nav.vendorBills', 'Vendor Bills'),
+            href: '/vendor-bills',
+            icon: FileText,
+        },
+        {
+            title: t('nav.vendorPayments', 'Vendor Payments'),
+            href: '/vendor-payments',
+            icon: CreditCard,
+        },
+        {
+            title: t('nav.transfers', 'Treasury Transfers'),
+            href: '/treasury/transfers',
+            icon: ArrowLeftRight,
+        },
+        {
             title: t('nav.trialBalance', 'Trial Balance'),
             href: '/reports/trial-balance',
             icon: BarChart3,
@@ -60,6 +94,11 @@ export function AppSidebar() {
             title: t('nav.arAging', 'AR Aging'),
             href: '/reports/ar-aging',
             icon: BarChart3,
+        },
+        {
+            title: t('nav.apAging', 'A/P Aging'),
+            href: '/reports/ap-aging',
+            icon: CalendarClock,
         },
     ];
 

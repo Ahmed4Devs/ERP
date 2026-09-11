@@ -13,6 +13,7 @@ use App\Modules\Platform\Models\Membership;
 use App\Modules\Platform\Models\Permission;
 use App\Modules\Platform\Models\Role;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Purchasing\Models\VendorProfile;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -37,6 +38,12 @@ class DatabaseSeeder extends Seeder
             ['name' => 'accounting.invoice.post', 'description' => 'Post Accounting Invoices', 'module' => 'Accounting'],
             ['name' => 'accounting.receipt.post', 'description' => 'Post Receipts', 'module' => 'Accounting'],
             ['name' => 'accounting.report.view', 'description' => 'View Financial Reports', 'module' => 'Accounting'],
+            ['name' => 'purchasing.order.view', 'description' => 'View Purchase Orders', 'module' => 'Purchasing'],
+            ['name' => 'purchasing.order.manage', 'description' => 'Manage Purchase Orders', 'module' => 'Purchasing'],
+            ['name' => 'purchasing.bill.view', 'description' => 'View Vendor Bills', 'module' => 'Purchasing'],
+            ['name' => 'purchasing.bill.post', 'description' => 'Post Vendor Bills', 'module' => 'Purchasing'],
+            ['name' => 'purchasing.payment.post', 'description' => 'Post Vendor Payments', 'module' => 'Purchasing'],
+            ['name' => 'treasury.transfer.post', 'description' => 'Post Treasury Transfers', 'module' => 'Treasury'],
         ];
 
         $permissionModels = [];
@@ -207,6 +214,29 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $partyA3 = Party::firstOrCreate(
+            ['tenant_id' => $tenantA->id, 'name' => 'Delta Tech Solutions Ltd'],
+            [
+                'name_ar' => 'شركة حلول دلتا التقنية المحدودة',
+                'type' => 'vendor',
+                'tax_id' => '310555666700003',
+                'email' => 'billing@deltatech.sa',
+                'phone' => '+966119998877',
+                'status' => 'active',
+            ]
+        );
+
+        VendorProfile::firstOrCreate(
+            ['company_id' => $companyA1->id, 'party_id' => $partyA3->id],
+            [
+                'tenant_id' => $tenantA->id,
+                'credit_limit' => 200000.00,
+                'payment_terms_days' => 30,
+                'currency' => 'SAR',
+                'is_active' => true,
+            ]
+        );
+
         // 3. Setup Tenant B: "Al-Binaa Holding" (شركة البناء القابضة) - For Isolation Testing
         $tenantB = Tenant::firstOrCreate(
             ['slug' => 'al-binaa'],
@@ -300,12 +330,14 @@ class DatabaseSeeder extends Seeder
         $standardAccounts = [
             ['code' => '1010', 'name' => 'Cash on Hand', 'name_ar' => 'النقدية في الصندوق', 'type' => 'asset', 'subtype' => 'cash'],
             ['code' => '1020', 'name' => 'Bank Current Account', 'name_ar' => 'الحساب الجاري لدى البنك', 'type' => 'asset', 'subtype' => 'bank'],
+            ['code' => '1150', 'name' => 'Test Tax Recoverable (Input Tax 10%)', 'name_ar' => 'ضريبة الاختبار المستردة (مدخلات 10%)', 'type' => 'asset', 'subtype' => 'tax_receivable', 'is_system' => true],
             ['code' => '1200', 'name' => 'Accounts Receivable Control', 'name_ar' => 'الذمم المدينة (العملاء)', 'type' => 'asset', 'subtype' => 'receivable', 'is_system' => true],
             ['code' => '2010', 'name' => 'Accounts Payable Control', 'name_ar' => 'الذمم الدائنة (الموردين)', 'type' => 'liability', 'subtype' => 'payable', 'is_system' => true],
             ['code' => '2150', 'name' => 'Test Tax Liability (10%)', 'name_ar' => 'مخصص ضريبة الاختبار (10%)', 'type' => 'liability', 'subtype' => 'tax_payable', 'is_system' => true],
             ['code' => '3010', 'name' => 'Share Capital', 'name_ar' => 'رأس المال المدفوع', 'type' => 'equity', 'subtype' => 'equity'],
             ['code' => '4100', 'name' => 'Consulting & Service Revenue', 'name_ar' => 'إيرادات الخدمات والاستشارات', 'type' => 'revenue', 'subtype' => 'operating_revenue'],
             ['code' => '5100', 'name' => 'General & Administrative Expenses', 'name_ar' => 'المصروفات العمومية والإدارية', 'type' => 'expense', 'subtype' => 'operating_expense'],
+            ['code' => '5200', 'name' => 'IT & Software Expenses', 'name_ar' => 'مصروفات تقنية المعلومات والبرمجيات', 'type' => 'expense', 'subtype' => 'operating_expense'],
         ];
 
         foreach ($standardAccounts as $acc) {

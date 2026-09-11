@@ -7,6 +7,7 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Queries\AccountsReceivableAgingQuery;
 use App\Modules\Accounting\Queries\GeneralLedgerQuery;
 use App\Modules\Accounting\Queries\TrialBalanceQuery;
+use App\Modules\Purchasing\Queries\AccountsPayableAgingQuery;
 use App\Shared\Context\CurrentCompany;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -58,6 +59,17 @@ class ReportController extends Controller
         $reportData = $query->execute($asOfDate);
 
         return Inertia::render('Accounting/Reports/Aging', [
+            'report' => $reportData,
+            'asOfDate' => $asOfDate,
+        ]);
+    }
+
+    public function apAging(Request $request, AccountsPayableAgingQuery $query): Response
+    {
+        $asOfDate = $request->as_of_date ?? now()->toDateString();
+        $reportData = $query->execute($asOfDate);
+
+        return Inertia::render('Accounting/Reports/ApAging', [
             'report' => $reportData,
             'asOfDate' => $asOfDate,
         ]);

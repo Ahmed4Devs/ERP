@@ -3,6 +3,7 @@
 namespace App\Modules\MasterData\Models;
 
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Purchasing\Models\VendorProfile;
 use App\Shared\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -40,5 +41,10 @@ class Party extends Model
     public function customerProfiles(): HasMany
     {
         return $this->hasMany(CustomerProfile::class, 'party_id');
+    }
+
+    public function vendorProfiles(): HasMany
+    {
+        return $this->hasMany(VendorProfile::class, 'party_id');
     }
 }
