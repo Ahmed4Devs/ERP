@@ -59,7 +59,13 @@
     "projects": "المشاريع وساعات العمل",
     "contracts": "العقود والاشتراكات المتكررة",
     "supportTickets": "تذاكر الدعم الفني",
-    "organization": "الهيكل التنظيمي"
+    "organization": "الهيكل التنظيمي",
+    "posTerminals": "نقاط البيع (الكاشير)",
+    "posSessions": "جلسات وورديات الكاشير",
+    "manufacturingBoms": "قوائم المواد والتصنيع (BOM)",
+    "productionOrders": "أوامر الإنتاج والتجميع",
+    "tradePriceLists": "قوائم الأسعار وشرائح الجملة",
+    "contractingClaims": "مستخلصات المقاولات والدفعات"
   },
   "accounting": {
     "chartOfAccounts": "دليل الحسابات",

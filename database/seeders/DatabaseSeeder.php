@@ -7,6 +7,8 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\FiscalPeriod;
 use App\Modules\Assets\Models\AssetCategory;
 use App\Modules\Assets\Models\FixedAsset;
+use App\Modules\Contracting\Models\ContractingClaim;
+use App\Modules\Contracting\Models\ContractingClaimItem;
 use App\Modules\Contracts\Models\Contract;
 use App\Modules\Contracts\Models\ContractLine;
 use App\Modules\CRM\Models\Lead;
@@ -18,6 +20,10 @@ use App\Modules\Inventory\Models\ProductCategory;
 use App\Modules\Inventory\Models\UnitOfMeasure;
 use App\Modules\Inventory\Models\Warehouse;
 use App\Modules\Inventory\Models\WarehouseLocation;
+use App\Modules\Manufacturing\Models\BillOfMaterial;
+use App\Modules\Manufacturing\Models\BomItem;
+use App\Modules\Manufacturing\Models\ProductionOrder;
+use App\Modules\Manufacturing\Models\ProductionOrderItem;
 use App\Modules\MasterData\Models\CustomerProfile;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
@@ -30,12 +36,16 @@ use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Models\ProjectTask;
 use App\Modules\Projects\Models\ProjectTimesheet;
 use App\Modules\Purchasing\Models\VendorProfile;
+use App\Modules\Retail\Models\PosSession;
+use App\Modules\Retail\Models\PosTerminal;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Modules\Sales\Models\SalesOrderLine;
 use App\Modules\Sales\Models\SalesQuotation;
 use App\Modules\Sales\Models\SalesQuotationLine;
 use App\Modules\Support\Models\SupportTicket;
 use App\Modules\Support\Models\SupportTicketMessage;
+use App\Modules\Trade\Models\PriceList;
+use App\Modules\Trade\Models\PriceListItem;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -99,6 +109,17 @@ class DatabaseSeeder extends Seeder
             ['name' => 'contracts.contract.manage', 'description' => 'Manage Recurring Contracts', 'module' => 'Contracts'],
             ['name' => 'support.ticket.view', 'description' => 'View Support Tickets', 'module' => 'Support'],
             ['name' => 'support.ticket.manage', 'description' => 'Manage Support Tickets & Messages', 'module' => 'Support'],
+            ['name' => 'retail.pos.view', 'description' => 'View POS Terminals & Sessions', 'module' => 'Retail'],
+            ['name' => 'retail.pos.manage', 'description' => 'Manage POS Terminals & Settings', 'module' => 'Retail'],
+            ['name' => 'retail.pos.transact', 'description' => 'Operate POS Checkout & Sessions', 'module' => 'Retail'],
+            ['name' => 'manufacturing.bom.view', 'description' => 'View Bills of Materials', 'module' => 'Manufacturing'],
+            ['name' => 'manufacturing.bom.manage', 'description' => 'Manage Bills of Materials', 'module' => 'Manufacturing'],
+            ['name' => 'manufacturing.order.view', 'description' => 'View Production Orders', 'module' => 'Manufacturing'],
+            ['name' => 'manufacturing.order.manage', 'description' => 'Manage & Execute Production Orders', 'module' => 'Manufacturing'],
+            ['name' => 'trade.pricelist.view', 'description' => 'View Price Lists & Tiers', 'module' => 'Trade'],
+            ['name' => 'trade.pricelist.manage', 'description' => 'Manage Price Lists & Wholesale Tiers', 'module' => 'Trade'],
+            ['name' => 'contracting.claim.view', 'description' => 'View Contracting Progress Claims', 'module' => 'Contracting'],
+            ['name' => 'contracting.claim.manage', 'description' => 'Manage & Bill Contracting Claims', 'module' => 'Contracting'],
         ];
 
         $permissionModels = [];
@@ -377,6 +398,9 @@ class DatabaseSeeder extends Seeder
 
         // 7. Seed Commercial Operations, CRM & Services
         $this->seedCommercialOperationsMasterData($tenantA, $companyA1, $userA1, $partyA1);
+
+        // 8. Seed Industry Vertical Packs (Retail, Manufacturing, Trade, Contracting)
+        $this->seedIndustryVerticalMasterData($tenantA, $companyA1, $branchA1, $userA1, $partyA1, $partyA2);
     }
 
     private function seedCompanyAccountsAndPeriods(Tenant $tenant, Company $company): void
@@ -910,5 +934,217 @@ class DatabaseSeeder extends Seeder
                 'sender_name' => 'Fahad Al-Sulaiman',
             ]
         );
+    }
+
+    private function seedIndustryVerticalMasterData(
+        Tenant $tenant,
+        Company $company,
+        Branch $branch,
+        User $user,
+        Party $party1,
+        Party $party2
+    ): void {
+        $cashAcc = Account::where('company_id', $company->id)->where('code', '1010')->first();
+        $warehouse = Warehouse::where('company_id', $company->id)->where('code', 'WH-RUH-01')->first();
+
+        // 1. POS Terminal & Initial Open Session
+        if ($cashAcc && $warehouse) {
+            $terminal = PosTerminal::firstOrCreate(
+                ['company_id' => $company->id, 'code' => 'POS-RUH-01'],
+                [
+                    'tenant_id' => $tenant->id,
+                    'branch_id' => $branch->id,
+                    'warehouse_id' => $warehouse->id,
+                    'cash_account_id' => $cashAcc->id,
+                    'name' => 'Riyadh Flagship Retail POS 01 (نقطة بيع فرع الرياض الرئيسية)',
+                    'status' => 'active',
+                ]
+            );
+
+            PosSession::firstOrCreate(
+                ['company_id' => $company->id, 'session_number' => 'SES-202609-001'],
+                [
+                    'tenant_id' => $tenant->id,
+                    'terminal_id' => $terminal->id,
+                    'user_id' => $user->id,
+                    'opening_cash' => '1000.000000',
+                    'closing_cash' => null,
+                    'expected_cash' => '1000.000000',
+                    'cash_difference' => '0.000000',
+                    'status' => 'open',
+                    'opened_at' => now(),
+                    'notes' => 'Morning shift opening float verified.',
+                ]
+            );
+        }
+
+        // 2. Manufacturing: BOM & Production Order for Executive Workstation Bundle
+        $lap = Product::where('company_id', $company->id)->where('sku', 'PRD-LAP-001')->first();
+        $mon = Product::where('company_id', $company->id)->where('sku', 'PRD-MON-001')->first();
+        $chair = Product::where('company_id', $company->id)->where('sku', 'PRD-CHAIR-001')->first();
+        $uomPcs = UnitOfMeasure::where('tenant_id', $tenant->id)->where('code', 'PCS')->first();
+        $catIT = $lap?->category;
+
+        $invAcc = Account::where('company_id', $company->id)->where('code', '1300')->first();
+        $cogsAcc = Account::where('company_id', $company->id)->where('code', '5000')->first();
+        $revAcc = Account::where('company_id', $company->id)->where('code', '4100')->first();
+        $grniAcc = Account::where('company_id', $company->id)->where('code', '2020')->first();
+
+        $bundleProduct = Product::firstOrCreate(
+            ['company_id' => $company->id, 'sku' => 'PRD-BUNDLE-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'category_id' => $catIT?->id,
+                'unit_id' => $uomPcs?->id,
+                'barcode' => '628100010099',
+                'name' => 'Complete Executive Workstation Bundle (حزمة محطة العمل التنفيذية المتكاملة)',
+                'name_ar' => 'حزمة محطة العمل التنفيذية المتكاملة',
+                'description' => 'Turnkey bundled workstation including Laptop, 4K Monitor, and Ergonomic Chair',
+                'type' => 'storable',
+                'standard_cost' => '5300.000000',
+                'moving_average_cost' => '0.000000',
+                'list_price' => '6999.000000',
+                'inventory_account_id' => $invAcc?->id,
+                'cogs_account_id' => $cogsAcc?->id,
+                'revenue_account_id' => $revAcc?->id,
+                'grni_account_id' => $grniAcc?->id,
+                'tax_rate' => '0.100000',
+                'is_active' => true,
+            ]
+        );
+
+        $bom = BillOfMaterial::firstOrCreate(
+            ['company_id' => $company->id, 'bom_code' => 'BOM-WS-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'product_id' => $bundleProduct->id,
+                'yield_quantity' => '1.000000',
+                'version' => 'v1.0',
+                'is_active' => true,
+                'notes' => 'Assembly BOM for Executive Workstation package.',
+            ]
+        );
+
+        if ($lap) {
+            BomItem::firstOrCreate(
+                ['bom_id' => $bom->id, 'product_id' => $lap->id],
+                ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'quantity' => '1.000000', 'scrap_percentage' => '0.0000']
+            );
+        }
+        if ($mon) {
+            BomItem::firstOrCreate(
+                ['bom_id' => $bom->id, 'product_id' => $mon->id],
+                ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'quantity' => '1.000000', 'scrap_percentage' => '0.0000']
+            );
+        }
+        if ($chair) {
+            BomItem::firstOrCreate(
+                ['bom_id' => $bom->id, 'product_id' => $chair->id],
+                ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'quantity' => '1.000000', 'scrap_percentage' => '0.0000']
+            );
+        }
+
+        if ($warehouse) {
+            $prodOrder = ProductionOrder::firstOrCreate(
+                ['company_id' => $company->id, 'order_number' => 'MO-2026-0001'],
+                [
+                    'tenant_id' => $tenant->id,
+                    'bom_id' => $bom->id,
+                    'finished_product_id' => $bundleProduct->id,
+                    'source_warehouse_id' => $warehouse->id,
+                    'destination_warehouse_id' => $warehouse->id,
+                    'target_quantity' => '5.000000',
+                    'produced_quantity' => '0.000000',
+                    'total_material_cost' => '0.000000',
+                    'unit_material_cost' => '0.000000',
+                    'status' => 'draft',
+                    'start_date' => '2026-09-15',
+                    'notes' => 'Batch assembly of 5 executive workstation sets.',
+                ]
+            );
+
+            if ($lap) {
+                ProductionOrderItem::firstOrCreate(
+                    ['production_order_id' => $prodOrder->id, 'product_id' => $lap->id],
+                    ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'planned_quantity' => '5.000000', 'consumed_quantity' => '0.000000']
+                );
+            }
+            if ($mon) {
+                ProductionOrderItem::firstOrCreate(
+                    ['production_order_id' => $prodOrder->id, 'product_id' => $mon->id],
+                    ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'planned_quantity' => '5.000000', 'consumed_quantity' => '0.000000']
+                );
+            }
+            if ($chair) {
+                ProductionOrderItem::firstOrCreate(
+                    ['production_order_id' => $prodOrder->id, 'product_id' => $chair->id],
+                    ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'planned_quantity' => '5.000000', 'consumed_quantity' => '0.000000']
+                );
+            }
+        }
+
+        // 3. Trade: Wholesale Tiered Price List
+        $priceList = PriceList::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'PL-WHOLESALE-VIP'],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'VIP Corporate Wholesale Tier (قائمة أسعار الجملة لكبار العملاء)',
+                'name_ar' => 'قائمة أسعار الجملة لكبار العملاء',
+                'currency' => 'SAR',
+                'is_default' => true,
+                'is_active' => true,
+            ]
+        );
+
+        if ($lap) {
+            PriceListItem::firstOrCreate(
+                ['price_list_id' => $priceList->id, 'product_id' => $lap->id, 'min_quantity' => '1.000000'],
+                ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'price' => '4200.000000', 'discount_percentage' => '0.0000']
+            );
+            PriceListItem::firstOrCreate(
+                ['price_list_id' => $priceList->id, 'product_id' => $lap->id, 'min_quantity' => '10.000000'],
+                ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'price' => '4200.000000', 'discount_percentage' => '5.0000']
+            );
+            PriceListItem::firstOrCreate(
+                ['price_list_id' => $priceList->id, 'product_id' => $lap->id, 'min_quantity' => '50.000000'],
+                ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'price' => '4200.000000', 'discount_percentage' => '10.0000']
+            );
+        }
+
+        // 4. Contracting: Project Progress Claim with 5% Retention
+        $project = Project::where('company_id', $company->id)->first();
+        if ($project) {
+            $claim = ContractingClaim::firstOrCreate(
+                ['company_id' => $company->id, 'claim_number' => 'CLM-2026-001'],
+                [
+                    'tenant_id' => $tenant->id,
+                    'project_id' => $project->id,
+                    'customer_id' => $party2->id,
+                    'claim_date' => '2026-09-10',
+                    'contract_value' => '500000.000000',
+                    'previous_billed_amount' => '0.000000',
+                    'current_work_amount' => '75000.000000',
+                    'retention_rate' => '0.0500',
+                    'retention_amount' => '3750.000000',
+                    'net_claim_amount' => '71250.000000',
+                    'tax_amount' => '7125.000000',
+                    'total_amount' => '78375.000000',
+                    'status' => 'draft',
+                    'notes' => 'Claim #1: Foundation engineering & architectural baseline completion.',
+                ]
+            );
+
+            ContractingClaimItem::firstOrCreate(
+                ['claim_id' => $claim->id, 'work_description' => 'Foundation Engineering & Excavation Milestone'],
+                [
+                    'tenant_id' => $tenant->id,
+                    'company_id' => $company->id,
+                    'scheduled_value' => '150000.000000',
+                    'previous_percentage' => '0.0000',
+                    'current_percentage' => '0.5000',
+                    'current_amount' => '75000.000000',
+                ]
+            );
+        }
     }
 }

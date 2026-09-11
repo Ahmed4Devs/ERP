@@ -7,6 +7,7 @@ use App\Modules\Accounting\Http\Controllers\ReceiptController;
 use App\Modules\Accounting\Http\Controllers\ReportController;
 use App\Modules\Assets\Http\Controllers\DepreciationController;
 use App\Modules\Assets\Http\Controllers\FixedAssetController;
+use App\Modules\Contracting\Http\Controllers\ContractingClaimController;
 use App\Modules\Contracts\Http\Controllers\ContractController;
 use App\Modules\CRM\Http\Controllers\LeadController;
 use App\Modules\HR\Http\Controllers\AttendanceController;
@@ -19,6 +20,8 @@ use App\Modules\Inventory\Http\Controllers\StockAdjustmentController;
 use App\Modules\Inventory\Http\Controllers\StockMovementController;
 use App\Modules\Inventory\Http\Controllers\StockTransferController;
 use App\Modules\Inventory\Http\Controllers\WarehouseController;
+use App\Modules\Manufacturing\Http\Controllers\BomController;
+use App\Modules\Manufacturing\Http\Controllers\ProductionOrderController;
 use App\Modules\MasterData\Http\Controllers\PartyController;
 use App\Modules\Payroll\Http\Controllers\PayrollRunController;
 use App\Modules\Platform\Http\Controllers\ContextController;
@@ -26,9 +29,13 @@ use App\Modules\Projects\Http\Controllers\ProjectController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
 use App\Modules\Purchasing\Http\Controllers\VendorPaymentController;
+use App\Modules\Retail\Http\Controllers\PosOrderController;
+use App\Modules\Retail\Http\Controllers\PosSessionController;
+use App\Modules\Retail\Http\Controllers\PosTerminalController;
 use App\Modules\Sales\Http\Controllers\SalesOrderController;
 use App\Modules\Sales\Http\Controllers\SalesQuotationController;
 use App\Modules\Support\Http\Controllers\SupportTicketController;
+use App\Modules\Trade\Http\Controllers\PriceListController;
 use App\Modules\Treasury\Http\Controllers\TreasuryTransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -192,6 +199,45 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/support/tickets/{ticket}', [SupportTicketController::class, 'show'])->name('support.tickets.show');
     Route::post('/support/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('support.tickets.reply');
     Route::post('/support/tickets/{ticket}/resolve', [SupportTicketController::class, 'resolve'])->name('support.tickets.resolve');
+
+    // Retail & Point of Sale (POS)
+    Route::get('/retail/terminals', [PosTerminalController::class, 'index'])->name('retail.terminals.index');
+    Route::post('/retail/terminals', [PosTerminalController::class, 'store'])->name('retail.terminals.store');
+    Route::get('/retail/pos/{terminal}', [PosTerminalController::class, 'terminal'])->name('retail.pos.terminal');
+
+    Route::get('/retail/sessions', [PosSessionController::class, 'index'])->name('retail.sessions.index');
+    Route::post('/retail/sessions', [PosSessionController::class, 'store'])->name('retail.sessions.store');
+    Route::get('/retail/sessions/{session}', [PosSessionController::class, 'show'])->name('retail.sessions.show');
+    Route::post('/retail/sessions/{session}/close', [PosSessionController::class, 'close'])->name('retail.sessions.close');
+
+    Route::post('/retail/orders', [PosOrderController::class, 'store'])->name('retail.orders.store');
+    Route::get('/retail/orders/{order}', [PosOrderController::class, 'show'])->name('retail.orders.show');
+
+    // Manufacturing & Assembly
+    Route::get('/manufacturing/boms', [BomController::class, 'index'])->name('manufacturing.boms.index');
+    Route::get('/manufacturing/boms/create', [BomController::class, 'create'])->name('manufacturing.boms.create');
+    Route::post('/manufacturing/boms', [BomController::class, 'store'])->name('manufacturing.boms.store');
+    Route::get('/manufacturing/boms/{bom}', [BomController::class, 'show'])->name('manufacturing.boms.show');
+
+    Route::get('/manufacturing/orders', [ProductionOrderController::class, 'index'])->name('manufacturing.orders.index');
+    Route::get('/manufacturing/orders/create', [ProductionOrderController::class, 'create'])->name('manufacturing.orders.create');
+    Route::post('/manufacturing/orders', [ProductionOrderController::class, 'store'])->name('manufacturing.orders.store');
+    Route::get('/manufacturing/orders/{order}', [ProductionOrderController::class, 'show'])->name('manufacturing.orders.show');
+    Route::post('/manufacturing/orders/{order}/complete', [ProductionOrderController::class, 'complete'])->name('manufacturing.orders.complete');
+
+    // Trade & Wholesale Pricing
+    Route::get('/trade/pricelists', [PriceListController::class, 'index'])->name('trade.pricelists.index');
+    Route::get('/trade/pricelists/create', [PriceListController::class, 'create'])->name('trade.pricelists.create');
+    Route::post('/trade/pricelists', [PriceListController::class, 'store'])->name('trade.pricelists.store');
+    Route::get('/trade/pricelists/{priceList}', [PriceListController::class, 'show'])->name('trade.pricelists.show');
+    Route::post('/trade/resolve-price', [PriceListController::class, 'resolvePrice'])->name('trade.resolve-price');
+
+    // Contracting Progress Claims
+    Route::get('/contracting/claims', [ContractingClaimController::class, 'index'])->name('contracting.claims.index');
+    Route::get('/contracting/claims/create', [ContractingClaimController::class, 'create'])->name('contracting.claims.create');
+    Route::post('/contracting/claims', [ContractingClaimController::class, 'store'])->name('contracting.claims.store');
+    Route::get('/contracting/claims/{claim}', [ContractingClaimController::class, 'show'])->name('contracting.claims.show');
+    Route::post('/contracting/claims/{claim}/bill', [ContractingClaimController::class, 'bill'])->name('contracting.claims.bill');
 });
 
 require __DIR__.'/settings.php';

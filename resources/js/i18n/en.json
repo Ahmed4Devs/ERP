@@ -59,7 +59,13 @@
     "projects": "Projects & Timesheets",
     "contracts": "Recurring Contracts",
     "supportTickets": "Support Tickets",
-    "organization": "Organization Structure"
+    "organization": "Organization Structure",
+    "posTerminals": "POS Terminals",
+    "posSessions": "POS Sessions & Shifts",
+    "manufacturingBoms": "Bills of Materials (BOM)",
+    "productionOrders": "Production Orders",
+    "tradePriceLists": "Price Lists & Wholesale Tiers",
+    "contractingClaims": "Contracting Progress Claims"
   },
   "accounting": {
     "chartOfAccounts": "Chart of Accounts",

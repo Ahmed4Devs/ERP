@@ -26,11 +26,16 @@ import {
     Receipt,
     ReceiptText,
     ShoppingBag,
+    Store,
     TrendingDown,
     Truck,
     UserPlus,
     Users,
     Warehouse,
+    Factory,
+    HardHat,
+    Percent,
+    Cpu,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -217,6 +222,36 @@ export function AppSidebar() {
             title: t('nav.fiscalPeriods', 'Fiscal Periods & Close'),
             href: '/accounting/periods',
             icon: Lock,
+        },
+        {
+            title: t('nav.posTerminals', 'POS Terminals'),
+            href: '/retail/terminals',
+            icon: Store,
+        },
+        {
+            title: t('nav.posSessions', 'POS Sessions & Shifts'),
+            href: '/retail/sessions',
+            icon: Receipt,
+        },
+        {
+            title: t('nav.manufacturingBoms', 'Bills of Materials (BOM)'),
+            href: '/manufacturing/boms',
+            icon: Factory,
+        },
+        {
+            title: t('nav.productionOrders', 'Production Orders'),
+            href: '/manufacturing/orders',
+            icon: Cpu,
+        },
+        {
+            title: t('nav.tradePriceLists', 'Price Lists & Tiers'),
+            href: '/trade/pricelists',
+            icon: Percent,
+        },
+        {
+            title: t('nav.contractingClaims', 'Contracting Progress Claims'),
+            href: '/contracting/claims',
+            icon: HardHat,
         },
     ];
 
