@@ -53,6 +53,12 @@
     "fixedAssets": "Fixed Assets Register",
     "depreciation": "Asset Depreciation",
     "fiscalPeriods": "Fiscal Periods & Close",
+    "crmLeads": "CRM Leads & Pipeline",
+    "salesQuotations": "Sales Quotations",
+    "salesOrders": "Sales Orders",
+    "projects": "Projects & Timesheets",
+    "contracts": "Recurring Contracts",
+    "supportTickets": "Support Tickets",
     "organization": "Organization Structure"
   },
   "accounting": {

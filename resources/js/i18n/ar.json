@@ -53,6 +53,12 @@
     "fixedAssets": "سجل الأصول الثابتة",
     "depreciation": "إهلاك الأصول الثابتة",
     "fiscalPeriods": "الفترات المالية والإقفال",
+    "crmLeads": "العملاء المحتملون والفرص (CRM)",
+    "salesQuotations": "عروض الأسعار",
+    "salesOrders": "أوامر البيع",
+    "projects": "المشاريع وساعات العمل",
+    "contracts": "العقود والاشتراكات المتكررة",
+    "supportTickets": "تذاكر الدعم الفني",
     "organization": "الهيكل التنظيمي"
   },
   "accounting": {

@@ -7,6 +7,8 @@ use App\Modules\Accounting\Http\Controllers\ReceiptController;
 use App\Modules\Accounting\Http\Controllers\ReportController;
 use App\Modules\Assets\Http\Controllers\DepreciationController;
 use App\Modules\Assets\Http\Controllers\FixedAssetController;
+use App\Modules\Contracts\Http\Controllers\ContractController;
+use App\Modules\CRM\Http\Controllers\LeadController;
 use App\Modules\HR\Http\Controllers\AttendanceController;
 use App\Modules\HR\Http\Controllers\DepartmentController;
 use App\Modules\HR\Http\Controllers\EmployeeController;
@@ -20,9 +22,13 @@ use App\Modules\Inventory\Http\Controllers\WarehouseController;
 use App\Modules\MasterData\Http\Controllers\PartyController;
 use App\Modules\Payroll\Http\Controllers\PayrollRunController;
 use App\Modules\Platform\Http\Controllers\ContextController;
+use App\Modules\Projects\Http\Controllers\ProjectController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
 use App\Modules\Purchasing\Http\Controllers\VendorPaymentController;
+use App\Modules\Sales\Http\Controllers\SalesOrderController;
+use App\Modules\Sales\Http\Controllers\SalesQuotationController;
+use App\Modules\Support\Http\Controllers\SupportTicketController;
 use App\Modules\Treasury\Http\Controllers\TreasuryTransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -145,6 +151,47 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/accounting/periods', [FiscalPeriodController::class, 'index'])->name('accounting.periods.index');
     Route::post('/accounting/periods', [FiscalPeriodController::class, 'store'])->name('accounting.periods.store');
     Route::post('/accounting/periods/{fiscalPeriod}/lock', [FiscalPeriodController::class, 'toggleLock'])->name('accounting.periods.toggleLock');
+
+    // CRM Leads
+    Route::get('/crm/leads', [LeadController::class, 'index'])->name('crm.leads.index');
+    Route::get('/crm/leads/create', [LeadController::class, 'create'])->name('crm.leads.create');
+    Route::post('/crm/leads', [LeadController::class, 'store'])->name('crm.leads.store');
+    Route::get('/crm/leads/{lead}', [LeadController::class, 'show'])->name('crm.leads.show');
+    Route::post('/crm/leads/{lead}/convert', [LeadController::class, 'convert'])->name('crm.leads.convert');
+
+    // Sales Quotations & Orders
+    Route::get('/sales/quotations', [SalesQuotationController::class, 'index'])->name('sales.quotations.index');
+    Route::get('/sales/quotations/create', [SalesQuotationController::class, 'create'])->name('sales.quotations.create');
+    Route::post('/sales/quotations', [SalesQuotationController::class, 'store'])->name('sales.quotations.store');
+    Route::get('/sales/quotations/{quotation}', [SalesQuotationController::class, 'show'])->name('sales.quotations.show');
+    Route::post('/sales/quotations/{quotation}/convert', [SalesQuotationController::class, 'convertToOrder'])->name('sales.quotations.convert');
+
+    Route::get('/sales/orders', [SalesOrderController::class, 'index'])->name('sales.orders.index');
+    Route::get('/sales/orders/{order}', [SalesOrderController::class, 'show'])->name('sales.orders.show');
+    Route::put('/sales/orders/{order}/status', [SalesOrderController::class, 'updateStatus'])->name('sales.orders.status');
+
+    // Projects & Timesheets
+    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
+    Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+    Route::post('/projects/{project}/tasks', [ProjectController::class, 'storeTask'])->name('projects.tasks.store');
+    Route::post('/projects/{project}/timesheets', [ProjectController::class, 'storeTimesheet'])->name('projects.timesheets.store');
+
+    // Contracts & Subscriptions
+    Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
+    Route::get('/contracts/create', [ContractController::class, 'create'])->name('contracts.create');
+    Route::post('/contracts', [ContractController::class, 'store'])->name('contracts.store');
+    Route::get('/contracts/{contract}', [ContractController::class, 'show'])->name('contracts.show');
+    Route::post('/contracts/{contract}/bill', [ContractController::class, 'bill'])->name('contracts.bill');
+
+    // Support Tickets
+    Route::get('/support/tickets', [SupportTicketController::class, 'index'])->name('support.tickets.index');
+    Route::get('/support/tickets/create', [SupportTicketController::class, 'create'])->name('support.tickets.create');
+    Route::post('/support/tickets', [SupportTicketController::class, 'store'])->name('support.tickets.store');
+    Route::get('/support/tickets/{ticket}', [SupportTicketController::class, 'show'])->name('support.tickets.show');
+    Route::post('/support/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('support.tickets.reply');
+    Route::post('/support/tickets/{ticket}/resolve', [SupportTicketController::class, 'resolve'])->name('support.tickets.resolve');
 });
 
 require __DIR__.'/settings.php';

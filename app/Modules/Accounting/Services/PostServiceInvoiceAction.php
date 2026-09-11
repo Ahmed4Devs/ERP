@@ -69,11 +69,8 @@ class PostServiceInvoiceAction
             throw new PostingException("Accounts Receivable control account not found for company {$companyId}.");
         }
 
-        $taxAccount = Account::where('company_id', $companyId)
-            ->where(function ($q): void {
-                $q->where('subtype', 'tax_payable')->orWhere('code', '2150');
-            })
-            ->first();
+        $taxAccount = Account::where('company_id', $companyId)->where('code', '2150')->first()
+            ?? Account::where('company_id', $companyId)->where('subtype', 'tax_payable')->first();
 
         if (! $taxAccount) {
             throw new PostingException("Tax liability account not found for company {$companyId}.");

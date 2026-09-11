@@ -7,6 +7,9 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\FiscalPeriod;
 use App\Modules\Assets\Models\AssetCategory;
 use App\Modules\Assets\Models\FixedAsset;
+use App\Modules\Contracts\Models\Contract;
+use App\Modules\Contracts\Models\ContractLine;
+use App\Modules\CRM\Models\Lead;
 use App\Modules\HR\Models\Department;
 use App\Modules\HR\Models\Designation;
 use App\Modules\HR\Models\Employee;
@@ -23,7 +26,16 @@ use App\Modules\Platform\Models\Membership;
 use App\Modules\Platform\Models\Permission;
 use App\Modules\Platform\Models\Role;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Projects\Models\Project;
+use App\Modules\Projects\Models\ProjectTask;
+use App\Modules\Projects\Models\ProjectTimesheet;
 use App\Modules\Purchasing\Models\VendorProfile;
+use App\Modules\Sales\Models\SalesOrder;
+use App\Modules\Sales\Models\SalesOrderLine;
+use App\Modules\Sales\Models\SalesQuotation;
+use App\Modules\Sales\Models\SalesQuotationLine;
+use App\Modules\Support\Models\SupportTicket;
+use App\Modules\Support\Models\SupportTicketMessage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -74,6 +86,19 @@ class DatabaseSeeder extends Seeder
             ['name' => 'assets.register.view', 'description' => 'View Fixed Assets Register', 'module' => 'Assets'],
             ['name' => 'assets.register.manage', 'description' => 'Manage Fixed Assets & Categories', 'module' => 'Assets'],
             ['name' => 'assets.depreciation.post', 'description' => 'Post Asset Depreciation Runs', 'module' => 'Assets'],
+            ['name' => 'crm.lead.view', 'description' => 'View CRM Leads', 'module' => 'CRM'],
+            ['name' => 'crm.lead.manage', 'description' => 'Manage CRM Leads & Pipeline', 'module' => 'CRM'],
+            ['name' => 'sales.quotation.view', 'description' => 'View Sales Quotations', 'module' => 'Sales'],
+            ['name' => 'sales.quotation.manage', 'description' => 'Manage Sales Quotations', 'module' => 'Sales'],
+            ['name' => 'sales.order.view', 'description' => 'View Sales Orders', 'module' => 'Sales'],
+            ['name' => 'sales.order.manage', 'description' => 'Manage Sales Orders', 'module' => 'Sales'],
+            ['name' => 'projects.project.view', 'description' => 'View Projects', 'module' => 'Projects'],
+            ['name' => 'projects.project.manage', 'description' => 'Manage Projects & Tasks', 'module' => 'Projects'],
+            ['name' => 'projects.timesheet.manage', 'description' => 'Manage Project Timesheets', 'module' => 'Projects'],
+            ['name' => 'contracts.contract.view', 'description' => 'View Recurring Contracts', 'module' => 'Contracts'],
+            ['name' => 'contracts.contract.manage', 'description' => 'Manage Recurring Contracts', 'module' => 'Contracts'],
+            ['name' => 'support.ticket.view', 'description' => 'View Support Tickets', 'module' => 'Support'],
+            ['name' => 'support.ticket.manage', 'description' => 'Manage Support Tickets & Messages', 'module' => 'Support'],
         ];
 
         $permissionModels = [];
@@ -349,6 +374,9 @@ class DatabaseSeeder extends Seeder
 
         // 6. Seed Workforce & Asset Master Data
         $this->seedWorkforceAndAssetMasterData($tenantA, $companyA1, $branchA1);
+
+        // 7. Seed Commercial Operations, CRM & Services
+        $this->seedCommercialOperationsMasterData($tenantA, $companyA1, $userA1, $partyA1);
     }
 
     private function seedCompanyAccountsAndPeriods(Tenant $tenant, Company $company): void
@@ -674,6 +702,212 @@ class DatabaseSeeder extends Seeder
                 'asset_account_id' => $fixedAssetAcc?->id,
                 'accumulated_depreciation_account_id' => $accumDeprAcc?->id,
                 'depreciation_expense_account_id' => $deprExpAcc?->id,
+            ]
+        );
+    }
+
+    private function seedCommercialOperationsMasterData(Tenant $tenant, Company $company, User $user, Party $party): void
+    {
+        // 1. CRM Lead
+        $lead = Lead::firstOrCreate(
+            ['company_id' => $company->id, 'lead_number' => 'LEAD-2026-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'title' => 'Enterprise Cloud ERP Implementation',
+                'party_id' => $party->id,
+                'contact_name' => 'Fahad Al-Sulaiman',
+                'email' => 'fahad@alsafwa.com',
+                'phone' => '+966501112233',
+                'company_name' => 'Al-Safwa Trading Group',
+                'source' => 'referral',
+                'status' => 'qualified',
+                'estimated_value' => '75000.000000',
+                'probability_percent' => 70,
+                'assigned_user_id' => $user->id,
+                'notes' => 'High-priority prospective lead for Q4 ERP rollout',
+            ]
+        );
+
+        // 2. Sales Quotation
+        $quote = SalesQuotation::firstOrCreate(
+            ['company_id' => $company->id, 'quote_number' => 'QT-2026-0001'],
+            [
+                'tenant_id' => $tenant->id,
+                'lead_id' => $lead->id,
+                'customer_id' => $party->id,
+                'issue_date' => '2026-09-01',
+                'valid_until' => '2026-10-01',
+                'subtotal' => '50000.000000',
+                'tax_rate' => '0.100000',
+                'tax_amount' => '5000.000000',
+                'discount_amount' => '0.000000',
+                'total_amount' => '55000.000000',
+                'status' => 'accepted',
+                'notes' => 'Quotation for ERP Consulting & Deployment',
+            ]
+        );
+
+        SalesQuotationLine::firstOrCreate(
+            ['quotation_id' => $quote->id, 'description' => 'ERP System Architecture & Setup'],
+            [
+                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
+                'quantity' => '1.000000',
+                'unit_price' => '50000.000000',
+                'discount_amount' => '0.000000',
+                'tax_amount' => '5000.000000',
+                'line_total' => '55000.000000',
+            ]
+        );
+
+        // 3. Sales Order
+        $salesOrder = SalesOrder::firstOrCreate(
+            ['company_id' => $company->id, 'order_number' => 'SO-2026-0001'],
+            [
+                'tenant_id' => $tenant->id,
+                'quotation_id' => $quote->id,
+                'customer_id' => $party->id,
+                'order_date' => '2026-09-05',
+                'delivery_date' => '2026-11-30',
+                'subtotal' => '50000.000000',
+                'tax_rate' => '0.100000',
+                'tax_amount' => '5000.000000',
+                'discount_amount' => '0.000000',
+                'total_amount' => '55000.000000',
+                'status' => 'confirmed',
+                'invoicing_status' => 'unbilled',
+                'notes' => 'Sales Order for ERP Deployment',
+            ]
+        );
+
+        SalesOrderLine::firstOrCreate(
+            ['sales_order_id' => $salesOrder->id, 'description' => 'ERP System Architecture & Setup'],
+            [
+                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
+                'quantity' => '1.000000',
+                'unit_price' => '50000.000000',
+                'tax_amount' => '5000.000000',
+                'line_total' => '55000.000000',
+            ]
+        );
+
+        // 4. Project & Timesheet
+        $emp = Employee::where('company_id', $company->id)->first();
+        $project = Project::firstOrCreate(
+            ['company_id' => $company->id, 'project_number' => 'PRJ-2026-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'name' => 'Al-Safwa ERP Modernization',
+                'name_ar' => 'مشروع تطوير نظام إدارة الموارد - الصفوة',
+                'customer_id' => $party->id,
+                'sales_order_id' => $salesOrder->id,
+                'manager_id' => $emp?->id,
+                'start_date' => '2026-09-01',
+                'end_date' => '2026-12-31',
+                'budget_cost' => '25000.000000',
+                'budget_revenue' => '55000.000000',
+                'status' => 'in_progress',
+                'notes' => 'Turnkey ERP implementation project',
+            ]
+        );
+
+        $task1 = ProjectTask::firstOrCreate(
+            ['project_id' => $project->id, 'title' => 'Core Ledger & Accounting Setup'],
+            [
+                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
+                'estimated_hours' => 40.00,
+                'actual_hours' => 20.00,
+                'status' => 'in_progress',
+                'priority' => 'high',
+                'due_date' => '2026-09-25',
+            ]
+        );
+
+        if ($emp) {
+            $hourlyCost = bcdiv((string) $emp->basic_salary, '240', 6);
+            $hours = '20.00';
+            $totalCost = bcmul($hourlyCost, $hours, 6);
+            $billingRate = '250.000000';
+            $totalBillable = bcmul($billingRate, $hours, 6);
+
+            ProjectTimesheet::firstOrCreate(
+                ['project_id' => $project->id, 'date' => '2026-09-10'],
+                [
+                    'tenant_id' => $tenant->id,
+                    'company_id' => $company->id,
+                    'task_id' => $task1->id,
+                    'employee_id' => $emp->id,
+                    'hours' => $hours,
+                    'hourly_cost' => $hourlyCost,
+                    'hourly_billing_rate' => $billingRate,
+                    'total_cost' => $totalCost,
+                    'total_billable' => $totalBillable,
+                    'is_billable' => true,
+                    'is_billed' => false,
+                    'notes' => 'Implemented double-entry rules and CoA migration',
+                ]
+            );
+        }
+
+        // 5. Contract & Subscription
+        $contract = Contract::firstOrCreate(
+            ['company_id' => $company->id, 'contract_number' => 'CNT-2026-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'customer_id' => $party->id,
+                'project_id' => $project->id,
+                'title' => 'Annual ERP Support & Cloud SLA',
+                'title_ar' => 'عقد الدعم الفني السنوي والحوسبة السحابية',
+                'start_date' => '2026-10-01',
+                'end_date' => '2027-09-30',
+                'billing_cycle' => 'monthly',
+                'recurring_amount' => '4500.000000',
+                'tax_rate' => '0.100000',
+                'next_billing_date' => '2026-10-01',
+                'status' => 'active',
+                'auto_renew' => true,
+                'notes' => 'Monthly recurring maintenance retainer',
+            ]
+        );
+
+        ContractLine::firstOrCreate(
+            ['contract_id' => $contract->id, 'description' => '24/7 SLA Technical Retainer & Monitoring'],
+            [
+                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
+                'quantity' => '1.000000',
+                'unit_price' => '4500.000000',
+                'line_total' => '4500.000000',
+            ]
+        );
+
+        // 6. Support Ticket
+        $ticket = SupportTicket::firstOrCreate(
+            ['company_id' => $company->id, 'ticket_number' => 'TCK-2026-0001'],
+            [
+                'tenant_id' => $tenant->id,
+                'customer_id' => $party->id,
+                'project_id' => $project->id,
+                'contact_name' => 'Fahad Al-Sulaiman',
+                'contact_email' => 'fahad@alsafwa.com',
+                'subject' => 'Request Assistance with Custom Chart of Accounts Import',
+                'description' => 'We need help validating the opening balances and ledger hierarchy.',
+                'priority' => 'high',
+                'status' => 'open',
+                'assigned_user_id' => $user->id,
+            ]
+        );
+
+        SupportTicketMessage::firstOrCreate(
+            ['ticket_id' => $ticket->id, 'message' => 'Initial inquiry submitted by customer.'],
+            [
+                'tenant_id' => $tenant->id,
+                'company_id' => $company->id,
+                'user_id' => null,
+                'sender_type' => 'customer',
+                'sender_name' => 'Fahad Al-Sulaiman',
             ]
         );
     }
