@@ -1,10 +1,13 @@
 import { Link } from '@inertiajs/react';
 import {
     ArrowLeftRight,
+    ArrowDownUp,
     Banknote,
     BarChart3,
     BookOpen,
+    Boxes,
     CalendarClock,
+    ClipboardCheck,
     CreditCard,
     FileText,
     FolderGit2,
@@ -12,7 +15,9 @@ import {
     LayoutGrid,
     ReceiptText,
     ShoppingBag,
+    Truck,
     Users,
+    Warehouse,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -74,6 +79,41 @@ export function AppSidebar() {
             title: t('nav.vendorPayments', 'Vendor Payments'),
             href: '/vendor-payments',
             icon: CreditCard,
+        },
+        {
+            title: t('nav.products', 'Products & Items'),
+            href: '/inventory/products',
+            icon: Boxes,
+        },
+        {
+            title: t('nav.warehouses', 'Warehouses & Locations'),
+            href: '/inventory/warehouses',
+            icon: Warehouse,
+        },
+        {
+            title: t('nav.goodsReceipts', 'Goods Receipts (GRN)'),
+            href: '/inventory/receipts',
+            icon: Truck,
+        },
+        {
+            title: t('nav.stockMovements', 'Stock Movements'),
+            href: '/inventory/movements',
+            icon: ArrowDownUp,
+        },
+        {
+            title: t('nav.stockTransfers', 'Stock Transfers'),
+            href: '/inventory/transfers',
+            icon: ArrowLeftRight,
+        },
+        {
+            title: t('nav.stockAdjustments', 'Stock Adjustments'),
+            href: '/inventory/adjustments',
+            icon: ClipboardCheck,
+        },
+        {
+            title: t('nav.inventoryValuation', 'Inventory Valuation'),
+            href: '/reports/inventory-valuation',
+            icon: BarChart3,
         },
         {
             title: t('nav.transfers', 'Treasury Transfers'),

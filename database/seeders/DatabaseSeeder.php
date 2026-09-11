@@ -5,6 +5,11 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\FiscalPeriod;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\Inventory\Models\ProductCategory;
+use App\Modules\Inventory\Models\UnitOfMeasure;
+use App\Modules\Inventory\Models\Warehouse;
+use App\Modules\Inventory\Models\WarehouseLocation;
 use App\Modules\MasterData\Models\CustomerProfile;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
@@ -44,6 +49,18 @@ class DatabaseSeeder extends Seeder
             ['name' => 'purchasing.bill.post', 'description' => 'Post Vendor Bills', 'module' => 'Purchasing'],
             ['name' => 'purchasing.payment.post', 'description' => 'Post Vendor Payments', 'module' => 'Purchasing'],
             ['name' => 'treasury.transfer.post', 'description' => 'Post Treasury Transfers', 'module' => 'Treasury'],
+            ['name' => 'inventory.product.view', 'description' => 'View Products', 'module' => 'Inventory'],
+            ['name' => 'inventory.product.manage', 'description' => 'Manage Products', 'module' => 'Inventory'],
+            ['name' => 'inventory.warehouse.view', 'description' => 'View Warehouses', 'module' => 'Inventory'],
+            ['name' => 'inventory.warehouse.manage', 'description' => 'Manage Warehouses', 'module' => 'Inventory'],
+            ['name' => 'inventory.receipt.view', 'description' => 'View Goods Receipts', 'module' => 'Inventory'],
+            ['name' => 'inventory.receipt.post', 'description' => 'Post Goods Receipts', 'module' => 'Inventory'],
+            ['name' => 'inventory.movement.view', 'description' => 'View Stock Movements', 'module' => 'Inventory'],
+            ['name' => 'inventory.transfer.view', 'description' => 'View Stock Transfers', 'module' => 'Inventory'],
+            ['name' => 'inventory.transfer.post', 'description' => 'Post Stock Transfers', 'module' => 'Inventory'],
+            ['name' => 'inventory.adjustment.view', 'description' => 'View Stock Adjustments', 'module' => 'Inventory'],
+            ['name' => 'inventory.adjustment.post', 'description' => 'Post Stock Adjustments', 'module' => 'Inventory'],
+            ['name' => 'inventory.valuation.view', 'description' => 'View Inventory Valuation Report', 'module' => 'Inventory'],
         ];
 
         $permissionModels = [];
@@ -313,6 +330,9 @@ class DatabaseSeeder extends Seeder
         $this->seedCompanyAccountsAndPeriods($tenantA, $companyA1);
         $this->seedCompanyAccountsAndPeriods($tenantA, $companyA2);
         $this->seedCompanyAccountsAndPeriods($tenantB, $companyB1);
+
+        // 5. Seed Inventory Master Data
+        $this->seedInventoryMasterData($tenantA, $companyA1, $branchA1, $branchA2);
     }
 
     private function seedCompanyAccountsAndPeriods(Tenant $tenant, Company $company): void
@@ -332,12 +352,16 @@ class DatabaseSeeder extends Seeder
             ['code' => '1020', 'name' => 'Bank Current Account', 'name_ar' => 'الحساب الجاري لدى البنك', 'type' => 'asset', 'subtype' => 'bank'],
             ['code' => '1150', 'name' => 'Test Tax Recoverable (Input Tax 10%)', 'name_ar' => 'ضريبة الاختبار المستردة (مدخلات 10%)', 'type' => 'asset', 'subtype' => 'tax_receivable', 'is_system' => true],
             ['code' => '1200', 'name' => 'Accounts Receivable Control', 'name_ar' => 'الذمم المدينة (العملاء)', 'type' => 'asset', 'subtype' => 'receivable', 'is_system' => true],
+            ['code' => '1300', 'name' => 'Merchandise Inventory', 'name_ar' => 'مخزون بضاعة بالمستودع', 'type' => 'asset', 'subtype' => 'inventory', 'is_system' => true],
             ['code' => '2010', 'name' => 'Accounts Payable Control', 'name_ar' => 'الذمم الدائنة (الموردين)', 'type' => 'liability', 'subtype' => 'payable', 'is_system' => true],
+            ['code' => '2020', 'name' => 'GRNI Clearing (Goods Received Not Invoiced)', 'name_ar' => 'حساب وسيط استلام بضائع غير مفوترة', 'type' => 'liability', 'subtype' => 'clearing', 'is_system' => true],
             ['code' => '2150', 'name' => 'Test Tax Liability (10%)', 'name_ar' => 'مخصص ضريبة الاختبار (10%)', 'type' => 'liability', 'subtype' => 'tax_payable', 'is_system' => true],
             ['code' => '3010', 'name' => 'Share Capital', 'name_ar' => 'رأس المال المدفوع', 'type' => 'equity', 'subtype' => 'equity'],
             ['code' => '4100', 'name' => 'Consulting & Service Revenue', 'name_ar' => 'إيرادات الخدمات والاستشارات', 'type' => 'revenue', 'subtype' => 'operating_revenue'],
+            ['code' => '5000', 'name' => 'Cost of Goods Sold (COGS)', 'name_ar' => 'تكلفة البضاعة المباعة', 'type' => 'expense', 'subtype' => 'cost_of_sales', 'is_system' => true],
             ['code' => '5100', 'name' => 'General & Administrative Expenses', 'name_ar' => 'المصروفات العمومية والإدارية', 'type' => 'expense', 'subtype' => 'operating_expense'],
             ['code' => '5200', 'name' => 'IT & Software Expenses', 'name_ar' => 'مصروفات تقنية المعلومات والبرمجيات', 'type' => 'expense', 'subtype' => 'operating_expense'],
+            ['code' => '5900', 'name' => 'Inventory Variance & Adjustments', 'name_ar' => 'فروقات وتسويات المخزون', 'type' => 'expense', 'subtype' => 'inventory_adjustment', 'is_system' => false],
         ];
 
         foreach ($standardAccounts as $acc) {
@@ -356,5 +380,142 @@ class DatabaseSeeder extends Seeder
                 ]
             );
         }
+    }
+
+    private function seedInventoryMasterData(Tenant $tenant, Company $company, Branch $branch1, Branch $branch2): void
+    {
+        // 1. Units of Measure
+        $uomPcs = UnitOfMeasure::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'PCS'],
+            ['name' => 'Piece', 'name_ar' => 'قطعة', 'symbol' => 'pc', 'is_active' => true]
+        );
+        $uomKg = UnitOfMeasure::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'KG'],
+            ['name' => 'Kilogram', 'name_ar' => 'كيلوجرام', 'symbol' => 'kg', 'is_active' => true]
+        );
+        $uomBox = UnitOfMeasure::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'BOX'],
+            ['name' => 'Box', 'name_ar' => 'صندوق', 'symbol' => 'bx', 'is_active' => true]
+        );
+
+        // 2. Product Categories
+        $catIT = ProductCategory::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'CAT-IT'],
+            ['company_id' => $company->id, 'name' => 'IT & Electronics', 'name_ar' => 'أجهزة وتقنية المعلومات', 'is_active' => true]
+        );
+        $catOffice = ProductCategory::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'code' => 'CAT-OFFICE'],
+            ['company_id' => $company->id, 'name' => 'Office Furniture & Supplies', 'name_ar' => 'أثاث ومستلزمات مكتبية', 'is_active' => true]
+        );
+
+        // 3. Warehouses & Locations
+        $wh1 = Warehouse::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'WH-RUH-01'],
+            [
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branch1->id,
+                'name' => 'Riyadh Central Warehouse',
+                'name_ar' => 'مستودع الرياض الرئيسي',
+                'address' => 'King Fahd Industrial Zone, Riyadh',
+                'is_default' => true,
+                'is_active' => true,
+            ]
+        );
+        WarehouseLocation::firstOrCreate(
+            ['warehouse_id' => $wh1->id, 'code' => 'DEFAULT'],
+            ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'name' => 'Default Location', 'name_ar' => 'الموقع الافتراضي', 'is_active' => true]
+        );
+
+        $wh2 = Warehouse::firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'WH-DMM-01'],
+            [
+                'tenant_id' => $tenant->id,
+                'branch_id' => $branch2->id,
+                'name' => 'Dammam Depot',
+                'name_ar' => 'مستودع الدمام',
+                'address' => 'Dammam Port Area',
+                'is_default' => false,
+                'is_active' => true,
+            ]
+        );
+        WarehouseLocation::firstOrCreate(
+            ['warehouse_id' => $wh2->id, 'code' => 'DEFAULT'],
+            ['tenant_id' => $tenant->id, 'company_id' => $company->id, 'name' => 'Default Location', 'name_ar' => 'الموقع الافتراضي', 'is_active' => true]
+        );
+
+        // 4. Products
+        $invAcc = Account::where('company_id', $company->id)->where('code', '1300')->first();
+        $cogsAcc = Account::where('company_id', $company->id)->where('code', '5000')->first();
+        $revAcc = Account::where('company_id', $company->id)->where('code', '4100')->first();
+        $grniAcc = Account::where('company_id', $company->id)->where('code', '2020')->first();
+
+        Product::firstOrCreate(
+            ['company_id' => $company->id, 'sku' => 'PRD-LAP-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'category_id' => $catIT->id,
+                'unit_id' => $uomPcs->id,
+                'barcode' => '628100010001',
+                'name' => 'Dell Latitude 5540 Laptop 16GB RAM',
+                'name_ar' => 'حاسب محمول ديل لاتيتيود 5540 ذاكرة 16 جيجابايت',
+                'description' => 'High performance business laptop with 13th Gen Intel Core i7',
+                'type' => 'storable',
+                'standard_cost' => '3500.000000',
+                'moving_average_cost' => '0.000000',
+                'list_price' => '4500.000000',
+                'inventory_account_id' => $invAcc?->id,
+                'cogs_account_id' => $cogsAcc?->id,
+                'revenue_account_id' => $revAcc?->id,
+                'grni_account_id' => $grniAcc?->id,
+                'tax_rate' => '0.100000',
+                'is_active' => true,
+            ]
+        );
+
+        Product::firstOrCreate(
+            ['company_id' => $company->id, 'sku' => 'PRD-MON-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'category_id' => $catIT->id,
+                'unit_id' => $uomPcs->id,
+                'barcode' => '628100010002',
+                'name' => 'Dell 27" UltraSharp 4K Monitor',
+                'name_ar' => 'شاشة ديل 27 بوصة ألترا شارب بدقة 4K',
+                'description' => 'Professional color-accurate 4K USB-C monitor',
+                'type' => 'storable',
+                'standard_cost' => '1200.000000',
+                'moving_average_cost' => '0.000000',
+                'list_price' => '1750.000000',
+                'inventory_account_id' => $invAcc?->id,
+                'cogs_account_id' => $cogsAcc?->id,
+                'revenue_account_id' => $revAcc?->id,
+                'grni_account_id' => $grniAcc?->id,
+                'tax_rate' => '0.100000',
+                'is_active' => true,
+            ]
+        );
+
+        Product::firstOrCreate(
+            ['company_id' => $company->id, 'sku' => 'PRD-CHAIR-001'],
+            [
+                'tenant_id' => $tenant->id,
+                'category_id' => $catOffice->id,
+                'unit_id' => $uomPcs->id,
+                'barcode' => '628100010003',
+                'name' => 'Ergonomic Executive Mesh Chair',
+                'name_ar' => 'كرسي مكتبي تنفيذي طبي مريح',
+                'description' => 'Adjustable lumbar support ergonomic mesh office chair',
+                'type' => 'storable',
+                'standard_cost' => '600.000000',
+                'moving_average_cost' => '0.000000',
+                'list_price' => '950.000000',
+                'inventory_account_id' => $invAcc?->id,
+                'cogs_account_id' => $cogsAcc?->id,
+                'revenue_account_id' => $revAcc?->id,
+                'grni_account_id' => $grniAcc?->id,
+                'tax_rate' => '0.100000',
+                'is_active' => true,
+            ]
+        );
     }
 }

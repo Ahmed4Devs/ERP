@@ -4,6 +4,13 @@ use App\Modules\Accounting\Http\Controllers\AccountController;
 use App\Modules\Accounting\Http\Controllers\InvoiceController;
 use App\Modules\Accounting\Http\Controllers\ReceiptController;
 use App\Modules\Accounting\Http\Controllers\ReportController;
+use App\Modules\Inventory\Http\Controllers\GoodsReceiptController;
+use App\Modules\Inventory\Http\Controllers\InventoryReportController;
+use App\Modules\Inventory\Http\Controllers\ProductController;
+use App\Modules\Inventory\Http\Controllers\StockAdjustmentController;
+use App\Modules\Inventory\Http\Controllers\StockMovementController;
+use App\Modules\Inventory\Http\Controllers\StockTransferController;
+use App\Modules\Inventory\Http\Controllers\WarehouseController;
 use App\Modules\MasterData\Http\Controllers\PartyController;
 use App\Modules\Platform\Http\Controllers\ContextController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
@@ -66,6 +73,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reports/general-ledger', [ReportController::class, 'generalLedger'])->name('reports.general-ledger');
     Route::get('/reports/ar-aging', [ReportController::class, 'aging'])->name('reports.ar-aging');
     Route::get('/reports/ap-aging', [ReportController::class, 'apAging'])->name('reports.ap-aging');
+    Route::get('/reports/inventory-valuation', [InventoryReportController::class, 'valuation'])->name('reports.inventory-valuation');
+
+    // Inventory & Distribution
+    Route::get('/inventory/products', [ProductController::class, 'index'])->name('inventory.products.index');
+    Route::get('/inventory/products/create', [ProductController::class, 'create'])->name('inventory.products.create');
+    Route::post('/inventory/products', [ProductController::class, 'store'])->name('inventory.products.store');
+    Route::get('/inventory/products/{product}/edit', [ProductController::class, 'edit'])->name('inventory.products.edit');
+    Route::put('/inventory/products/{product}', [ProductController::class, 'update'])->name('inventory.products.update');
+    Route::delete('/inventory/products/{product}', [ProductController::class, 'destroy'])->name('inventory.products.destroy');
+
+    Route::get('/inventory/warehouses', [WarehouseController::class, 'index'])->name('inventory.warehouses.index');
+    Route::post('/inventory/warehouses', [WarehouseController::class, 'store'])->name('inventory.warehouses.store');
+    Route::put('/inventory/warehouses/{warehouse}', [WarehouseController::class, 'update'])->name('inventory.warehouses.update');
+
+    Route::get('/inventory/receipts', [GoodsReceiptController::class, 'index'])->name('inventory.receipts.index');
+    Route::get('/inventory/receipts/create', [GoodsReceiptController::class, 'create'])->name('inventory.receipts.create');
+    Route::post('/inventory/receipts', [GoodsReceiptController::class, 'store'])->name('inventory.receipts.store');
+    Route::get('/inventory/receipts/{goodsReceipt}', [GoodsReceiptController::class, 'show'])->name('inventory.receipts.show');
+
+    Route::get('/inventory/movements', [StockMovementController::class, 'index'])->name('inventory.movements.index');
+
+    Route::get('/inventory/transfers', [StockTransferController::class, 'index'])->name('inventory.transfers.index');
+    Route::get('/inventory/transfers/create', [StockTransferController::class, 'create'])->name('inventory.transfers.create');
+    Route::post('/inventory/transfers', [StockTransferController::class, 'store'])->name('inventory.transfers.store');
+
+    Route::get('/inventory/adjustments', [StockAdjustmentController::class, 'index'])->name('inventory.adjustments.index');
+    Route::get('/inventory/adjustments/create', [StockAdjustmentController::class, 'create'])->name('inventory.adjustments.create');
+    Route::post('/inventory/adjustments', [StockAdjustmentController::class, 'store'])->name('inventory.adjustments.store');
 });
 
 require __DIR__.'/settings.php';
