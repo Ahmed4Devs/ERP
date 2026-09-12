@@ -109,9 +109,11 @@ export default function PurchaseOrdersShow({ order }: Props) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5">
-                        <Printer className="h-4 w-4" />
-                        <span>{isRtl ? 'طباعة' : 'Print'}</span>
+                    <Button asChild variant="outline" size="sm" className="gap-1.5">
+                        <a href={`/purchase-orders/${order.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Printer className="h-4 w-4" />
+                            <span>{isRtl ? 'طباعة رسمية' : 'Official Print'}</span>
+                        </a>
                     </Button>
 
                     {order.status === 'draft' && (

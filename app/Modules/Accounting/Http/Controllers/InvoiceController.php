@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\ServiceInvoice;
 use App\Modules\Accounting\Services\PostServiceInvoiceAction;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
+use App\Modules\Localization\Services\ZatcaQrCodeService;
 use App\Modules\MasterData\Models\Party;
 use App\Shared\Context\CurrentCompany;
 use Illuminate\Http\RedirectResponse;
@@ -105,6 +108,51 @@ class InvoiceController extends Controller
 
         return Inertia::render('Accounting/Invoices/Show', [
             'invoice' => $invoice,
+        ]);
+    }
+
+    public function print(
+        string $id,
+        ZatcaQrCodeService $zatcaQrService,
+        QrCodeSvgService $qrSvgService,
+        TafqeetService $tafqeetService
+    ): Response {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        $invoice = ServiceInvoice::where('company_id', $companyId)
+            ->with([
+                'party',
+                'lines.revenueAccount',
+                'company',
+                'branch',
+                'allocations.receipt',
+            ])
+            ->findOrFail($id);
+
+        $company = $invoice->company ?: $currentCompany->get();
+        $sellerName = $company?->legal_name ?: ($company?->name ?: 'شركة الحلول المتكاملة للأعمال');
+        $vatNumber = $company?->tax_number ?: '300123456700003';
+        $timestamp = $invoice->created_at ? $invoice->created_at->toIso8601String() : now()->toIso8601String();
+
+        $tlvBase64 = $zatcaQrService->generateBase64Tlv(
+            sellerName: $sellerName,
+            vatNumber: $vatNumber,
+            timestamp: $timestamp,
+            totalWithVat: (string) $invoice->total,
+            vatTotal: (string) $invoice->tax_amount
+        );
+
+        $qrCodeDataUri = $qrSvgService->generateDataUri($tlvBase64, 180);
+
+        return Inertia::render('Accounting/Invoices/Print', [
+            'invoice' => $invoice,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($invoice->total),
+                'en' => $tafqeetService->inEnglish($invoice->total),
+            ],
         ]);
     }
 }

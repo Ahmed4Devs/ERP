@@ -7,6 +7,8 @@ use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\Receipt;
 use App\Modules\Accounting\Models\ServiceInvoice;
 use App\Modules\Accounting\Services\PostReceiptAndAllocateAction;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\MasterData\Models\Party;
 use App\Shared\Context\CurrentCompany;
 use Illuminate\Http\RedirectResponse;
@@ -83,5 +85,37 @@ class ReceiptController extends Controller
         $receipt = $this->postReceiptAndAllocateAction->execute($validated);
 
         return redirect()->route('receipts.index')->with('success', "Receipt {$receipt->receipt_number} posted and allocated successfully.");
+    }
+
+    public function print(
+        string $id,
+        TafqeetService $tafqeetService,
+        QrCodeSvgService $qrSvgService
+    ): Response {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        $receipt = Receipt::where('company_id', $companyId)
+            ->with([
+                'party',
+                'depositAccount',
+                'allocations.invoice',
+                'company',
+            ])
+            ->findOrFail($id);
+
+        $company = $receipt->company ?: $currentCompany->get();
+        $qrPayload = "Receipt: {$receipt->receipt_number} | Amount: {$receipt->amount} SAR | Date: {$receipt->date} | From: {$receipt->party?->name}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Accounting/Receipts/Print', [
+            'receipt' => $receipt,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($receipt->amount),
+                'en' => $tafqeetService->inEnglish($receipt->amount),
+            ],
+        ]);
     }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Search, BarChart3, CheckCircle2, AlertTriangle, Layers, Building2, Package } from 'lucide-react';
+import { Search, BarChart3, CheckCircle2, AlertTriangle, Layers, Building2, Package, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
@@ -76,13 +76,24 @@ export default function InventoryValuationReport({ report, warehouses, categorie
             <Head title={t('inventory.valuationReportTitle')} />
 
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-                    {t('inventory.valuationReportTitle')}
-                </h1>
-                <p className="text-sm text-neutral-500 mt-1">
-                    {t('inventory.valuationReportSubtitle')}
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+                        {t('inventory.valuationReportTitle')}
+                    </h1>
+                    <p className="text-sm text-neutral-500 mt-1">
+                        {t('inventory.valuationReportSubtitle')}
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm" className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400">
+                        <a href={`/reports/inventory-valuation/export?warehouse_id=${selectedWarehouse}&category_id=${selectedCategory}&search=${encodeURIComponent(search)}`}>
+                            <FileSpreadsheet className="h-4 w-4" />
+                            <span>{isRtl ? 'تصدير Excel' : 'Export Excel'}</span>
+                        </a>
+                    </Button>
+                </div>
             </div>
 
             {/* Executive KPIs & GL Reconciliation Cards */}

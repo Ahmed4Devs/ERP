@@ -65,7 +65,9 @@
     "manufacturingBoms": "Bills of Materials (BOM)",
     "productionOrders": "Production Orders",
     "tradePriceLists": "Price Lists & Wholesale Tiers",
-    "contractingClaims": "Contracting Progress Claims"
+    "contractingClaims": "Contracting Progress Claims",
+    "platformSettings": "Data & Integration Management",
+    "dataImport": "Data Import & Export"
   },
   "accounting": {
     "chartOfAccounts": "Chart of Accounts",

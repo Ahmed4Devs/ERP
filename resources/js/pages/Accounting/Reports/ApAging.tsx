@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Calendar, Printer, AlertTriangle } from 'lucide-react';
+import { Calendar, Printer, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
@@ -68,6 +68,13 @@ export default function ApAging({ report, asOfDate }: Props) {
                             {t('common.view')}
                         </Button>
                     </form>
+
+                    <Button asChild variant="outline" size="sm" className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400">
+                        <a href={`/reports/ap-aging/export?as_of_date=${date}`}>
+                            <FileSpreadsheet className="h-4 w-4" />
+                            <span>{isRtl ? 'تصدير Excel' : 'Export Excel'}</span>
+                        </a>
+                    </Button>
 
                     <Button onClick={() => window.print()} variant="outline" size="sm" className="gap-1.5">
                         <Printer className="h-4 w-4" />

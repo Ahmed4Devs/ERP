@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { BookOpen, Search, Printer, Calendar } from 'lucide-react';
+import { BookOpen, Search, Printer, Calendar, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,6 @@ interface Account {
     code: string;
     name: string;
     name_ar?: string;
-    type?: string;
 }
 
 interface LedgerLine {
@@ -24,7 +23,7 @@ interface LedgerLine {
 }
 
 interface ReportData {
-    account: Account | null;
+    account: (Account & { type: string; current_balance: string }) | null;
     lines: LedgerLine[];
     total_debit: string;
     total_credit: string;
@@ -41,7 +40,7 @@ interface Props {
 }
 
 export default function GeneralLedger({ report, accounts, filters }: Props) {
-    const { t } = useTranslation();
+    const { t, isRtl } = useTranslation();
 
     const [form, setForm] = useState({
         account_id: filters.account_id || '',
@@ -69,10 +68,18 @@ export default function GeneralLedger({ report, accounts, filters }: Props) {
                     </p>
                 </div>
 
-                <Button onClick={() => window.print()} variant="outline" size="sm" className="gap-1.5 self-start sm:self-auto">
-                    <Printer className="h-4 w-4" />
-                    <span>Print</span>
-                </Button>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Button asChild variant="outline" size="sm" className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400">
+                        <a href={`/reports/general-ledger/export?account_id=${form.account_id || ''}&start_date=${form.start_date || ''}&end_date=${form.end_date || ''}`}>
+                            <FileSpreadsheet className="h-4 w-4" />
+                            <span>{isRtl ? 'تصدير Excel' : 'Export Excel'}</span>
+                        </a>
+                    </Button>
+                    <Button onClick={() => window.print()} variant="outline" size="sm" className="gap-1.5">
+                        <Printer className="h-4 w-4" />
+                        <span>{isRtl ? 'طباعة' : 'Print'}</span>
+                    </Button>
+                </div>
             </div>
 
             {/* Filter Bar */}

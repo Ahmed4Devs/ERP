@@ -4,6 +4,8 @@ namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Models\PurchaseOrderLine;
@@ -189,5 +191,37 @@ class PurchaseOrderController extends Controller
         ]);
 
         return back()->with('success', "Purchase Order {$order->po_number} approved successfully.");
+    }
+
+    public function print(
+        string $id,
+        TafqeetService $tafqeetService,
+        QrCodeSvgService $qrSvgService
+    ): Response {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        $order = PurchaseOrder::where('company_id', $companyId)
+            ->with([
+                'party',
+                'lines.expenseAccount',
+                'approver',
+                'company',
+            ])
+            ->findOrFail($id);
+
+        $company = $order->company ?: $currentCompany->get();
+        $qrPayload = "PO: {$order->po_number} | Vendor: {$order->party?->name} | Total: {$order->total} SAR | Date: {$order->date}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Purchasing/Orders/Print', [
+            'order' => $order,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($order->total),
+                'en' => $tafqeetService->inEnglish($order->total),
+            ],
+        ]);
     }
 }

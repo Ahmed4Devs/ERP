@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Plus, Search, Banknote, CheckCircle, ArrowDownLeft, Wallet } from 'lucide-react';
+import { Plus, Search, Banknote, CheckCircle, ArrowDownLeft, Wallet, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -419,12 +419,13 @@ export default function ReceiptsIndex({ receipts, customers, depositAccounts, op
                                 <th className="px-6 py-3 font-semibold">{t('receipts.paymentMethod')}</th>
                                 <th className="px-6 py-3 font-semibold text-end">{t('receipts.amount')}</th>
                                 <th className="px-6 py-3 font-semibold text-end">{t('receipts.unallocated')}</th>
+                                <th className="px-6 py-3 font-semibold text-center">{isRtl ? 'طباعة السند' : 'Print'}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                             {receipts.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-10 text-center text-neutral-500">
+                                    <td colSpan={8} className="px-6 py-10 text-center text-neutral-500">
                                         {t('receipts.noReceiptsFound')}
                                     </td>
                                 </tr>
@@ -462,6 +463,14 @@ export default function ReceiptsIndex({ receipts, customers, depositAccounts, op
                                             ) : (
                                                 <span className="text-neutral-400">0.00</span>
                                             )}
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                                                <a href={`/receipts/${r.id}/print`} target="_blank" rel="noopener noreferrer">
+                                                    <Printer className="h-3.5 w-3.5 text-neutral-600 dark:text-neutral-300" />
+                                                    <span>{isRtl ? 'طباعة' : 'Print'}</span>
+                                                </a>
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))

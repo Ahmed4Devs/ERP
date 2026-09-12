@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Clock, Calendar, Printer, AlertTriangle } from 'lucide-react';
+import { Clock, Calendar, Printer, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
@@ -22,7 +22,7 @@ interface Props {
 }
 
 export default function Aging({ report, asOfDate }: Props) {
-    const { t } = useTranslation();
+    const { t, isRtl } = useTranslation();
     const [date, setDate] = useState(asOfDate);
 
     const handleFilter = (e: React.FormEvent) => {
@@ -69,9 +69,16 @@ export default function Aging({ report, asOfDate }: Props) {
                         </Button>
                     </form>
 
+                    <Button asChild variant="outline" size="sm" className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400">
+                        <a href={`/reports/ar-aging/export?as_of_date=${date}`}>
+                            <FileSpreadsheet className="h-4 w-4" />
+                            <span>{isRtl ? 'تصدير Excel' : 'Export Excel'}</span>
+                        </a>
+                    </Button>
+
                     <Button onClick={() => window.print()} variant="outline" size="sm" className="gap-1.5">
                         <Printer className="h-4 w-4" />
-                        <span>Print</span>
+                        <span>{isRtl ? 'طباعة' : 'Print'}</span>
                     </Button>
                 </div>
             </div>

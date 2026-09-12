@@ -26,6 +26,7 @@ use App\Modules\MasterData\Http\Controllers\PartyController;
 use App\Modules\Payroll\Http\Controllers\PayrollRunController;
 use App\Modules\Platform\Http\Controllers\ContextController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
+use App\Modules\Platform\Http\Controllers\DataImportController;
 use App\Modules\Projects\Http\Controllers\ProjectController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
@@ -65,16 +66,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
     Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
 
     // Receipts & Collections
     Route::get('/receipts', [ReceiptController::class, 'index'])->name('receipts.index');
     Route::post('/receipts', [ReceiptController::class, 'store'])->name('receipts.store');
+    Route::get('/receipts/{receipt}/print', [ReceiptController::class, 'print'])->name('receipts.print');
 
     // Purchasing & Procure-to-Pay
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
     Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
     Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show');
+    Route::get('/purchase-orders/{purchaseOrder}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print');
     Route::post('/purchase-orders/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
 
     Route::get('/vendor-bills', [VendorBillController::class, 'index'])->name('vendor-bills.index');
@@ -91,10 +95,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Financial Reports
     Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');
+    Route::get('/reports/trial-balance/export', [ReportController::class, 'exportTrialBalance'])->name('reports.trial-balance.export');
+
     Route::get('/reports/general-ledger', [ReportController::class, 'generalLedger'])->name('reports.general-ledger');
+    Route::get('/reports/general-ledger/export', [ReportController::class, 'exportGeneralLedger'])->name('reports.general-ledger.export');
+
     Route::get('/reports/ar-aging', [ReportController::class, 'aging'])->name('reports.ar-aging');
+    Route::get('/reports/ar-aging/export', [ReportController::class, 'exportArAging'])->name('reports.ar-aging.export');
+
     Route::get('/reports/ap-aging', [ReportController::class, 'apAging'])->name('reports.ap-aging');
+    Route::get('/reports/ap-aging/export', [ReportController::class, 'exportApAging'])->name('reports.ap-aging.export');
+
     Route::get('/reports/inventory-valuation', [InventoryReportController::class, 'valuation'])->name('reports.inventory-valuation');
+    Route::get('/reports/inventory-valuation/export', [InventoryReportController::class, 'exportValuation'])->name('reports.inventory-valuation.export');
 
     // Inventory & Distribution
     Route::get('/inventory/products', [ProductController::class, 'index'])->name('inventory.products.index');
@@ -239,6 +252,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/contracting/claims', [ContractingClaimController::class, 'store'])->name('contracting.claims.store');
     Route::get('/contracting/claims/{claim}', [ContractingClaimController::class, 'show'])->name('contracting.claims.show');
     Route::post('/contracting/claims/{claim}/bill', [ContractingClaimController::class, 'bill'])->name('contracting.claims.bill');
+
+    // Master Data Bulk Import & Export Hub
+    Route::get('/data-import', [DataImportController::class, 'index'])->name('data-import.index');
+    Route::get('/data-import/template/{type}', [DataImportController::class, 'downloadTemplate'])->name('data-import.template');
+    Route::get('/data-import/export/{type}', [DataImportController::class, 'export'])->name('data-import.export');
+    Route::post('/data-import/upload', [DataImportController::class, 'import'])->name('data-import.upload');
 });
 
 require __DIR__.'/settings.php';

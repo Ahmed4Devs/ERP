@@ -34,6 +34,7 @@ import {
     HardHat,
     Percent,
     Cpu,
+    Database,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -289,6 +290,16 @@ export function AppSidebar() {
                     title: t('nav.contractingClaims', 'مستخلصات المقاولات'),
                     href: '/contracting/claims',
                     icon: HardHat,
+                },
+            ],
+        },
+        {
+            title: t('nav.platformSettings', 'إدارة وتكامل البيانات'),
+            items: [
+                {
+                    title: t('nav.dataImport', 'استيراد وتصدير البيانات'),
+                    href: '/data-import',
+                    icon: Database,
                 },
             ],
         },

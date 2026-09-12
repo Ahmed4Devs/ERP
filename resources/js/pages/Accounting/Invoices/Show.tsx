@@ -131,12 +131,13 @@ export default function InvoicesShow({ invoice }: Props) {
 
                 <div className="flex items-center gap-3">
                     <Button
-                        onClick={handlePrint}
-                        variant="outline"
-                        className="gap-2 border-neutral-300 dark:border-neutral-700"
+                        asChild
+                        className="gap-2 bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900"
                     >
-                        <Printer className="h-4 w-4" />
-                        <span>{t('invoices.printInvoice')}</span>
+                        <a href={`/invoices/${invoice.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Printer className="h-4 w-4" />
+                            <span>{isRtl ? 'طباعة / تصدير PDF رسمي' : 'Official Print / PDF'}</span>
+                        </a>
                     </Button>
                 </div>
             </div>

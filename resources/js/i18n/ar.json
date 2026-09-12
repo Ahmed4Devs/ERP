@@ -65,7 +65,9 @@
     "manufacturingBoms": "قوائم المواد والتصنيع (BOM)",
     "productionOrders": "أوامر الإنتاج والتجميع",
     "tradePriceLists": "قوائم الأسعار وشرائح الجملة",
-    "contractingClaims": "مستخلصات المقاولات والدفعات"
+    "contractingClaims": "مستخلصات المقاولات والدفعات",
+    "platformSettings": "إدارة وتكامل البيانات",
+    "dataImport": "استيراد وتصدير البيانات"
   },
   "accounting": {
     "chartOfAccounts": "دليل الحسابات",
