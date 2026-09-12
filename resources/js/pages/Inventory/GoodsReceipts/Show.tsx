@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Truck, CheckCircle2, FileText, ArrowRightLeft } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Truck, CheckCircle2, FileText, ArrowRightLeft, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 
@@ -105,6 +105,15 @@ export default function GoodsReceiptShow({ receipt }: Props) {
                             {receipt.date} • {isRtl && receipt.party?.name_ar ? receipt.party.name_ar : receipt.party?.name}
                         </p>
                     </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" className="gap-2">
+                        <a href={`/inventory/receipts/${receipt.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Printer className="h-4 w-4" />
+                            <span>{isRtl ? 'طباعة سند الاستلام / PDF' : 'Print GRN / PDF'}</span>
+                        </a>
+                    </Button>
                 </div>
             </div>
 

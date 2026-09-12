@@ -5,6 +5,8 @@ namespace App\Modules\Sales\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\CRM\Models\Lead;
 use App\Modules\Inventory\Models\Product;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Sales\Models\SalesQuotation;
 use App\Modules\Sales\Models\SalesQuotationLine;
@@ -191,5 +193,31 @@ class SalesQuotationController extends Controller
 
         return redirect()->route('sales.orders.show', $order->id)
             ->with('success', 'Quotation successfully converted to Sales Order.');
+    }
+
+    public function print(SalesQuotation $quotation, TafqeetService $tafqeetService, QrCodeSvgService $qrSvgService): Response
+    {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        if ($quotation->company_id !== $companyId) {
+            abort(403);
+        }
+
+        $quotation->load(['customer', 'lead', 'lines.product', 'salesOrder', 'company']);
+        $company = $quotation->company ?: $currentCompany->get();
+
+        $qrPayload = "Sales Quotation: {$quotation->quote_number} | Customer: {$quotation->customer?->name} | Total: {$quotation->total_amount} SAR | Valid: {$quotation->valid_until}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Sales/Quotations/Print', [
+            'quotation' => $quotation,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($quotation->total_amount),
+                'en' => $tafqeetService->inEnglish($quotation->total_amount),
+            ],
+        ]);
     }
 }

@@ -4,6 +4,8 @@ namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Models\VendorBill;
@@ -125,6 +127,37 @@ class VendorBillController extends Controller
 
         return Inertia::render('Purchasing/Bills/Show', [
             'bill' => $bill,
+        ]);
+    }
+
+    public function print(string $id, TafqeetService $tafqeetService, QrCodeSvgService $qrSvgService): Response
+    {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        $bill = VendorBill::where('company_id', $companyId)
+            ->with([
+                'party',
+                'lines.expenseAccount',
+                'purchaseOrder',
+                'journalEntry.lines.account',
+                'allocations.payment',
+                'company',
+            ])
+            ->findOrFail($id);
+
+        $company = $bill->company ?: $currentCompany->get();
+        $qrPayload = "Vendor Bill: {$bill->bill_number} | Supplier: {$bill->party?->name} | Tax ID: {$bill->party?->tax_id} | Total: {$bill->total} SAR | Tax: {$bill->tax_amount} SAR";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Purchasing/Bills/Print', [
+            'bill' => $bill,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($bill->total),
+                'en' => $tafqeetService->inEnglish($bill->total),
+            ],
         ]);
     }
 }

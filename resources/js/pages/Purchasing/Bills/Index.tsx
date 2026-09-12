@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Search, FileText, CheckCircle2, Clock, AlertCircle, Eye } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle2, Clock, AlertCircle, Eye, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
@@ -251,12 +251,19 @@ export default function VendorBillsIndex({ bills, filters }: Props) {
                                             {Number(bill.balance_due).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR
                                         </td>
                                         <td className="px-6 py-4 text-end">
-                                            <Button asChild variant="ghost" size="sm" className="gap-1 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900">
-                                                <Link href={`/vendor-bills/${bill.id}`}>
-                                                    <Eye className="h-4 w-4" />
-                                                    <span>{t('common.view')}</span>
-                                                </Link>
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0 text-neutral-600 dark:text-neutral-400 hover:text-blue-600" title={isRtl ? 'طباعة رسمية' : 'Official Print'}>
+                                                    <a href={`/vendor-bills/${bill.id}/print`} target="_blank" rel="noopener noreferrer">
+                                                        <Printer className="h-4 w-4" />
+                                                    </a>
+                                                </Button>
+                                                <Button asChild variant="ghost" size="sm" className="gap-1 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900">
+                                                    <Link href={`/vendor-bills/${bill.id}`}>
+                                                        <Eye className="h-4 w-4" />
+                                                        <span>{t('common.view')}</span>
+                                                    </Link>
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

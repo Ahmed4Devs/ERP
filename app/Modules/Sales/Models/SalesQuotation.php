@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SalesQuotation extends Model
 {
@@ -62,5 +63,10 @@ class SalesQuotation extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(SalesOrder::class, 'quotation_id');
+    }
+
+    public function salesOrder(): HasOne
+    {
+        return $this->hasOne(SalesOrder::class, 'quotation_id');
     }
 }

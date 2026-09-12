@@ -85,9 +85,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/vendor-bills/create', [VendorBillController::class, 'create'])->name('vendor-bills.create');
     Route::post('/vendor-bills', [VendorBillController::class, 'store'])->name('vendor-bills.store');
     Route::get('/vendor-bills/{vendorBill}', [VendorBillController::class, 'show'])->name('vendor-bills.show');
+    Route::get('/vendor-bills/{vendorBill}/print', [VendorBillController::class, 'print'])->name('vendor-bills.print');
 
     Route::get('/vendor-payments', [VendorPaymentController::class, 'index'])->name('vendor-payments.index');
     Route::post('/vendor-payments', [VendorPaymentController::class, 'store'])->name('vendor-payments.store');
+    Route::get('/vendor-payments/{vendorPayment}/print', [VendorPaymentController::class, 'print'])->name('vendor-payments.print');
 
     // Treasury Transfers
     Route::get('/treasury/transfers', [TreasuryTransferController::class, 'index'])->name('treasury.transfers.index');
@@ -125,6 +127,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inventory/receipts/create', [GoodsReceiptController::class, 'create'])->name('inventory.receipts.create');
     Route::post('/inventory/receipts', [GoodsReceiptController::class, 'store'])->name('inventory.receipts.store');
     Route::get('/inventory/receipts/{goodsReceipt}', [GoodsReceiptController::class, 'show'])->name('inventory.receipts.show');
+    Route::get('/inventory/receipts/{goodsReceipt}/print', [GoodsReceiptController::class, 'print'])->name('inventory.receipts.print');
 
     Route::get('/inventory/movements', [StockMovementController::class, 'index'])->name('inventory.movements.index');
 
@@ -185,10 +188,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/sales/quotations/create', [SalesQuotationController::class, 'create'])->name('sales.quotations.create');
     Route::post('/sales/quotations', [SalesQuotationController::class, 'store'])->name('sales.quotations.store');
     Route::get('/sales/quotations/{quotation}', [SalesQuotationController::class, 'show'])->name('sales.quotations.show');
+    Route::get('/sales/quotations/{quotation}/print', [SalesQuotationController::class, 'print'])->name('sales.quotations.print');
     Route::post('/sales/quotations/{quotation}/convert', [SalesQuotationController::class, 'convertToOrder'])->name('sales.quotations.convert');
 
     Route::get('/sales/orders', [SalesOrderController::class, 'index'])->name('sales.orders.index');
     Route::get('/sales/orders/{order}', [SalesOrderController::class, 'show'])->name('sales.orders.show');
+    Route::get('/sales/orders/{order}/print', [SalesOrderController::class, 'print'])->name('sales.orders.print');
     Route::put('/sales/orders/{order}/status', [SalesOrderController::class, 'updateStatus'])->name('sales.orders.status');
 
     // Projects & Timesheets
@@ -226,6 +231,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('/retail/orders', [PosOrderController::class, 'store'])->name('retail.orders.store');
     Route::get('/retail/orders/{order}', [PosOrderController::class, 'show'])->name('retail.orders.show');
+    Route::get('/retail/orders/{order}/print', [PosOrderController::class, 'print'])->name('retail.orders.print');
 
     // Manufacturing & Assembly
     Route::get('/manufacturing/boms', [BomController::class, 'index'])->name('manufacturing.boms.index');

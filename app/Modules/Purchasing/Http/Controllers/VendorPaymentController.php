@@ -4,6 +4,8 @@ namespace App\Modules\Purchasing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Purchasing\Models\VendorBill;
 use App\Modules\Purchasing\Models\VendorPayment;
@@ -89,5 +91,34 @@ class VendorPaymentController extends Controller
         $payment = $this->postVendorPaymentAndAllocateAction->execute($validated);
 
         return redirect()->route('vendor-payments.index')->with('success', "Vendor Payment {$payment->payment_number} posted and allocated successfully.");
+    }
+
+    public function print(string $id, TafqeetService $tafqeetService, QrCodeSvgService $qrSvgService): Response
+    {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        $payment = VendorPayment::where('company_id', $companyId)
+            ->with([
+                'party',
+                'paymentAccount',
+                'allocations.bill',
+                'company',
+            ])
+            ->findOrFail($id);
+
+        $company = $payment->company ?: $currentCompany->get();
+        $qrPayload = "Vendor Payment: {$payment->payment_number} | Amount: {$payment->amount} SAR | Date: {$payment->payment_date} | Beneficiary: {$payment->party?->name}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Purchasing/Payments/Print', [
+            'payment' => $payment,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($payment->amount),
+                'en' => $tafqeetService->inEnglish($payment->amount),
+            ],
+        ]);
     }
 }

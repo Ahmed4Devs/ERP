@@ -93,6 +93,13 @@ export default function QuotationShow({ quotation }: Props) {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <Button asChild variant="outline" className="gap-2">
+                        <a href={`/sales/quotations/${quotation.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Printer className="h-4 w-4" />
+                            <span>{isRtl ? 'طباعة عرض السعر / PDF' : 'Print Quotation / PDF'}</span>
+                        </a>
+                    </Button>
+
                     {quotation.status !== 'converted' ? (
                         <Button onClick={handleConvertToOrder} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
                             <ShoppingCart className="h-4 w-4" />

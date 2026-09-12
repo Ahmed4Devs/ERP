@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, ShoppingBag, Truck, CheckCircle2, Clock, FolderKanban, FileText, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShoppingBag, Truck, CheckCircle2, Clock, FolderKanban, FileText, Plus, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 
@@ -105,6 +105,13 @@ export default function SalesOrderShow({ order }: Props) {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" className="gap-2">
+                        <a href={`/sales/orders/${order.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Printer className="h-4 w-4" />
+                            <span>{isRtl ? 'طباعة أمر البيع / PDF' : 'Print Order / PDF'}</span>
+                        </a>
+                    </Button>
+
                     {order.status === 'confirmed' && (
                         <Button onClick={() => handleStatusUpdate('delivering')} variant="outline" className="gap-2 text-amber-600 border-amber-200">
                             <Truck className="h-4 w-4" />

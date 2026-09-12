@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Search, ShoppingBag, Eye, CheckCircle2, Clock, Truck } from 'lucide-react';
+import { Search, ShoppingBag, Eye, CheckCircle2, Clock, Truck, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
@@ -225,12 +225,19 @@ export default function SalesOrdersIndex({ orders, filters }: Props) {
                                             {Number(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR
                                         </td>
                                         <td className="px-6 py-4 text-end">
-                                            <Button asChild variant="ghost" size="sm" className="gap-1 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900">
-                                                <Link href={`/sales/orders/${order.id}`}>
-                                                    <Eye className="h-4 w-4" />
-                                                    <span>{isRtl ? 'عرض' : 'View'}</span>
-                                                </Link>
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0 text-neutral-600 dark:text-neutral-400 hover:text-emerald-600" title={isRtl ? 'طباعة أمر البيع' : 'Print Order'}>
+                                                    <a href={`/sales/orders/${order.id}/print`} target="_blank" rel="noopener noreferrer">
+                                                        <Printer className="h-4 w-4" />
+                                                    </a>
+                                                </Button>
+                                                <Button asChild variant="ghost" size="sm" className="gap-1 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900">
+                                                    <Link href={`/sales/orders/${order.id}`}>
+                                                        <Eye className="h-4 w-4" />
+                                                        <span>{isRtl ? 'عرض' : 'View'}</span>
+                                                    </Link>
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

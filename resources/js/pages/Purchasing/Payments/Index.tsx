@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Plus, Search, CreditCard, CheckCircle, ArrowUpRight, Wallet } from 'lucide-react';
+import { Plus, Search, CreditCard, CheckCircle, ArrowUpRight, Wallet, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -422,12 +422,13 @@ export default function VendorPaymentsIndex({
                                 <th className="px-6 py-3 text-start">{t('vendorPayments.bankAccount')}</th>
                                 <th className="px-6 py-3 text-end">{t('vendorPayments.amount')}</th>
                                 <th className="px-6 py-3 text-end">{t('vendorPayments.unallocated')}</th>
+                                <th className="px-6 py-3 text-end">{isRtl ? 'الإجراءات' : 'Actions'}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                             {payments.data.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-neutral-500">
+                                    <td colSpan={8} className="px-6 py-12 text-center text-neutral-500">
                                         <CreditCard className="mx-auto h-8 w-8 text-neutral-400 mb-2" />
                                         <p>{t('vendorPayments.noPaymentsFound')}</p>
                                     </td>
@@ -457,6 +458,13 @@ export default function VendorPaymentsIndex({
                                         </td>
                                         <td className="px-6 py-4 text-end font-mono text-neutral-500">
                                             {Number(pay.unallocated_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR
+                                        </td>
+                                        <td className="px-6 py-4 text-end">
+                                            <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0 text-neutral-600 dark:text-neutral-400 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950" title={isRtl ? 'طباعة سند الصرف' : 'Print Voucher'}>
+                                                <a href={`/vendor-payments/${pay.id}/print`} target="_blank" rel="noopener noreferrer">
+                                                    <Printer className="h-4 w-4" />
+                                                </a>
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))

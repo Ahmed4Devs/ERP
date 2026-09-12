@@ -3,6 +3,8 @@
 namespace App\Modules\Sales\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Shared\Context\CurrentCompany;
 use Illuminate\Http\RedirectResponse;
@@ -59,5 +61,31 @@ class SalesOrderController extends Controller
 
         return redirect()->route('sales.orders.show', $order->id)
             ->with('success', 'Sales Order status updated successfully.');
+    }
+
+    public function print(SalesOrder $order, TafqeetService $tafqeetService, QrCodeSvgService $qrSvgService): Response
+    {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        if ($order->company_id !== $companyId) {
+            abort(403);
+        }
+
+        $order->load(['customer', 'quotation', 'lines.product', 'company']);
+        $company = $order->company ?: $currentCompany->get();
+
+        $qrPayload = "Sales Order: {$order->order_number} | Customer: {$order->customer?->name} | Total: {$order->total_amount} SAR | Date: {$order->order_date}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Sales/Orders/Print', [
+            'order' => $order,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($order->total_amount),
+                'en' => $tafqeetService->inEnglish($order->total_amount),
+            ],
+        ]);
     }
 }

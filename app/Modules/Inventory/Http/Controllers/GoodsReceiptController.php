@@ -7,6 +7,8 @@ use App\Modules\Inventory\Models\GoodsReceipt;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\Warehouse;
 use App\Modules\Inventory\Services\PostGoodsReceiptAction;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Shared\Context\CurrentCompany;
@@ -128,6 +130,41 @@ class GoodsReceiptController extends Controller
 
         return Inertia::render('Inventory/GoodsReceipts/Show', [
             'receipt' => $goodsReceipt,
+        ]);
+    }
+
+    public function print(GoodsReceipt $goodsReceipt, QrCodeSvgService $qrSvgService, TafqeetService $tafqeetService): Response
+    {
+        $companyId = app(CurrentCompany::class)->id();
+
+        if ($goodsReceipt->company_id !== $companyId) {
+            abort(403);
+        }
+
+        $goodsReceipt->load([
+            'warehouse',
+            'party',
+            'purchaseOrder',
+            'lines.product.unit',
+            'journalEntry.lines.account',
+            'company',
+        ]);
+
+        $company = $goodsReceipt->company ?: app(CurrentCompany::class)->get();
+        $totalCost = $goodsReceipt->lines->sum(fn ($l) => (float) $l->quantity * (float) $l->unit_cost);
+
+        $qrPayload = "GRN: {$goodsReceipt->receipt_number} | Warehouse: {$goodsReceipt->warehouse?->name} | Supplier: {$goodsReceipt->party?->name} | Date: {$goodsReceipt->date}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Inventory/GoodsReceipts/Print', [
+            'receipt' => $goodsReceipt,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'totalCost' => $totalCost,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($totalCost),
+                'en' => $tafqeetService->inEnglish($totalCost),
+            ],
         ]);
     }
 }

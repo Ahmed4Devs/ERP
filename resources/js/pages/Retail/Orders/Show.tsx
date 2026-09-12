@@ -70,9 +70,11 @@ export default function PosOrderShow({ order }: Props) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button onClick={() => window.print()} variant="outline" className="gap-2">
-                        <Printer className="h-4 w-4" />
-                        <span>{isRtl ? 'طباعة الإيصال' : 'Print Receipt'}</span>
+                    <Button asChild variant="outline" className="gap-2">
+                        <a href={`/retail/orders/${order.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Printer className="h-4 w-4" />
+                            <span>{isRtl ? 'طباعة حرارية ZATCA 80mm' : 'Print Thermal 80mm'}</span>
+                        </a>
                     </Button>
                 </div>
             </div>
