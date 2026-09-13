@@ -30,11 +30,13 @@ use App\Modules\HR\Http\Controllers\LeaveRequestController;
 use App\Modules\Inventory\Http\Controllers\DeliveryNoteController;
 use App\Modules\Inventory\Http\Controllers\GoodsReceiptController;
 use App\Modules\Inventory\Http\Controllers\InventoryReportController;
+use App\Modules\Inventory\Http\Controllers\LandedCostController;
 use App\Modules\Inventory\Http\Controllers\ProductBatchController;
 use App\Modules\Inventory\Http\Controllers\ProductController;
 use App\Modules\Inventory\Http\Controllers\ProductSerialController;
 use App\Modules\Inventory\Http\Controllers\StockAdjustmentController;
 use App\Modules\Inventory\Http\Controllers\StockMovementController;
+use App\Modules\Inventory\Http\Controllers\StocktakeController;
 use App\Modules\Inventory\Http\Controllers\StockTransferController;
 use App\Modules\Inventory\Http\Controllers\WarehouseController;
 use App\Modules\Localization\Http\Controllers\ZatcaIntegrationController;
@@ -270,6 +272,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inventory/adjustments', [StockAdjustmentController::class, 'index'])->name('inventory.adjustments.index');
     Route::get('/inventory/adjustments/create', [StockAdjustmentController::class, 'create'])->name('inventory.adjustments.create');
     Route::post('/inventory/adjustments', [StockAdjustmentController::class, 'store'])->name('inventory.adjustments.store');
+
+    // Landed Costs Allocation
+    Route::get('/inventory/landed-costs', [LandedCostController::class, 'index'])->name('inventory.landed-costs.index');
+    Route::get('/inventory/landed-costs/create', [LandedCostController::class, 'create'])->name('inventory.landed-costs.create');
+    Route::post('/inventory/landed-costs', [LandedCostController::class, 'store'])->name('inventory.landed-costs.store');
+    Route::get('/inventory/landed-costs/{landedCost}', [LandedCostController::class, 'show'])->name('inventory.landed-costs.show');
+    Route::post('/inventory/landed-costs/{landedCost}/post', [LandedCostController::class, 'post'])->name('inventory.landed-costs.post');
+
+    // Physical Stocktake & Cycle Counting
+    Route::get('/inventory/stocktakes', [StocktakeController::class, 'index'])->name('inventory.stocktakes.index');
+    Route::get('/inventory/stocktakes/create', [StocktakeController::class, 'create'])->name('inventory.stocktakes.create');
+    Route::post('/inventory/stocktakes', [StocktakeController::class, 'store'])->name('inventory.stocktakes.store');
+    Route::get('/inventory/stocktakes/{stocktake}', [StocktakeController::class, 'show'])->name('inventory.stocktakes.show');
+    Route::post('/inventory/stocktakes/{stocktake}/counts', [StocktakeController::class, 'recordCounts'])->name('inventory.stocktakes.record-counts');
+    Route::post('/inventory/stocktakes/{stocktake}/finalize', [StocktakeController::class, 'finalize'])->name('inventory.stocktakes.finalize');
 
     // Batches & FEFO Tracking
     Route::get('/inventory/batches', [ProductBatchController::class, 'index'])->name('inventory.batches.index');

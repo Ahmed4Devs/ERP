@@ -163,6 +163,11 @@ export function AppSidebar() {
                     icon: Truck,
                 },
                 {
+                    title: t('nav.landedCosts', 'تكاليف الاستيراد (Landed Costs)'),
+                    href: '/inventory/landed-costs',
+                    icon: Layers,
+                },
+                {
                     title: t('nav.deliveryNotes', 'سندات تسليم البضاعة'),
                     href: '/inventory/delivery-notes',
                     icon: PackageCheck,
@@ -188,7 +193,12 @@ export function AppSidebar() {
                     icon: ArrowLeftRight,
                 },
                 {
-                    title: t('nav.stockAdjustments', 'تسويات وجرد المخزون'),
+                    title: t('nav.stocktakes', 'الجرد الفعلي للمخزون'),
+                    href: '/inventory/stocktakes',
+                    icon: ClipboardCheck,
+                },
+                {
+                    title: t('nav.stockAdjustments', 'تسويات المخزون'),
                     href: '/inventory/adjustments',
                     icon: ClipboardCheck,
                 },
