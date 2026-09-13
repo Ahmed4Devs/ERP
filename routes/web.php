@@ -5,6 +5,7 @@ use App\Modules\Accounting\Http\Controllers\BankReconciliationController;
 use App\Modules\Accounting\Http\Controllers\FiscalPeriodController;
 use App\Modules\Accounting\Http\Controllers\InvoiceController;
 use App\Modules\Accounting\Http\Controllers\JournalEntryController;
+use App\Modules\Accounting\Http\Controllers\PettyCashController;
 use App\Modules\Accounting\Http\Controllers\ReceiptController;
 use App\Modules\Accounting\Http\Controllers\ReportController;
 use App\Modules\Accounting\Http\Controllers\StatementController;
@@ -133,6 +134,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Treasury Transfers
     Route::get('/treasury/transfers', [TreasuryTransferController::class, 'index'])->name('treasury.transfers.index');
     Route::post('/treasury/transfers', [TreasuryTransferController::class, 'store'])->name('treasury.transfers.store');
+
+    // Petty Cash Funds & Settlement Vouchers
+    Route::get('/accounting/petty-cash', [PettyCashController::class, 'index'])->name('accounting.petty-cash.index');
+    Route::post('/accounting/petty-cash/funds', [PettyCashController::class, 'storeFund'])->name('accounting.petty-cash.funds.store');
+    Route::get('/accounting/petty-cash/settlements/create', [PettyCashController::class, 'createSettlement'])->name('accounting.petty-cash.settlements.create');
+    Route::post('/accounting/petty-cash/settlements', [PettyCashController::class, 'storeSettlement'])->name('accounting.petty-cash.settlements.store');
+    Route::get('/accounting/petty-cash/settlements/{settlement}', [PettyCashController::class, 'showSettlement'])->name('accounting.petty-cash.settlements.show');
+    Route::post('/accounting/petty-cash/settlements/{settlement}/post', [PettyCashController::class, 'postSettlement'])->name('accounting.petty-cash.settlements.post');
+    Route::get('/accounting/petty-cash/settlements/{settlement}/print', [PettyCashController::class, 'printSettlement'])->name('accounting.petty-cash.settlements.print');
 
     // Financial Reports
     Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');

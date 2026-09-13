@@ -235,6 +235,11 @@ export function AppSidebar() {
                     icon: Percent,
                 },
                 {
+                    title: t('nav.pettyCash', 'العهد النقدية والمصروفات النثرية'),
+                    href: '/accounting/petty-cash',
+                    icon: HandCoins,
+                },
+                {
                     title: t('nav.trialBalance', 'ميزان المراجعة'),
                     href: '/reports/trial-balance',
                     icon: BarChart3,
