@@ -243,6 +243,21 @@ export function AppSidebar() {
                     icon: FileCheck2,
                 },
                 {
+                    title: t('nav.treasuryTransfers', 'التحويلات بين الخزائن والبنوك'),
+                    href: '/treasury/transfers',
+                    icon: ArrowLeftRight,
+                },
+                {
+                    title: t('nav.cheques', 'إدارة الشيكات وأوراق القبض والدفع'),
+                    href: '/treasury/cheques',
+                    icon: CreditCard,
+                },
+                {
+                    title: t('nav.bankGuarantees', 'خطابات الضمان البنكية (LG)'),
+                    href: '/treasury/bank-guarantees',
+                    icon: Landmark,
+                },
+                {
                     title: t('nav.vatReturns', 'إقرار ضريبة القيمة المضافة'),
                     href: '/accounting/vat-returns',
                     icon: Percent,

@@ -55,6 +55,8 @@ use App\Modules\Sales\Http\Controllers\SalesOrderController;
 use App\Modules\Sales\Http\Controllers\SalesQuotationController;
 use App\Modules\Support\Http\Controllers\SupportTicketController;
 use App\Modules\Trade\Http\Controllers\PriceListController;
+use App\Modules\Treasury\Http\Controllers\BankGuaranteeController;
+use App\Modules\Treasury\Http\Controllers\ChequeController;
 use App\Modules\Treasury\Http\Controllers\TreasuryTransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -140,6 +142,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Treasury Transfers
     Route::get('/treasury/transfers', [TreasuryTransferController::class, 'index'])->name('treasury.transfers.index');
     Route::post('/treasury/transfers', [TreasuryTransferController::class, 'store'])->name('treasury.transfers.store');
+
+    // Treasury Cheques (PDC)
+    Route::get('/treasury/cheques', [ChequeController::class, 'index'])->name('treasury.cheques.index');
+    Route::get('/treasury/cheques/create', [ChequeController::class, 'create'])->name('treasury.cheques.create');
+    Route::post('/treasury/cheques', [ChequeController::class, 'store'])->name('treasury.cheques.store');
+    Route::get('/treasury/cheques/{cheque}', [ChequeController::class, 'show'])->name('treasury.cheques.show');
+    Route::post('/treasury/cheques/{cheque}/deposit', [ChequeController::class, 'deposit'])->name('treasury.cheques.deposit');
+    Route::post('/treasury/cheques/{cheque}/collect', [ChequeController::class, 'collect'])->name('treasury.cheques.collect');
+    Route::post('/treasury/cheques/{cheque}/bounce', [ChequeController::class, 'bounce'])->name('treasury.cheques.bounce');
+    Route::post('/treasury/cheques/{cheque}/clear', [ChequeController::class, 'clear'])->name('treasury.cheques.clear');
+
+    // Bank Guarantees (Letters of Guarantee)
+    Route::get('/treasury/bank-guarantees', [BankGuaranteeController::class, 'index'])->name('treasury.bank-guarantees.index');
+    Route::get('/treasury/bank-guarantees/create', [BankGuaranteeController::class, 'create'])->name('treasury.bank-guarantees.create');
+    Route::post('/treasury/bank-guarantees', [BankGuaranteeController::class, 'store'])->name('treasury.bank-guarantees.store');
+    Route::post('/treasury/bank-guarantees/{bankGuarantee}/release', [BankGuaranteeController::class, 'release'])->name('treasury.bank-guarantees.release');
+    Route::post('/treasury/bank-guarantees/{bankGuarantee}/renew', [BankGuaranteeController::class, 'renew'])->name('treasury.bank-guarantees.renew');
 
     // Petty Cash Funds & Settlement Vouchers
     Route::get('/accounting/petty-cash', [PettyCashController::class, 'index'])->name('accounting.petty-cash.index');
