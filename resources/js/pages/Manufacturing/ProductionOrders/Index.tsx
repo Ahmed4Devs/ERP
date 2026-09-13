@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Cpu, Plus, Search, Eye, Layers, Warehouse, CheckCircle2, Clock } from 'lucide-react';
+import { Cpu, Plus, Search, Eye, Printer, Layers, Warehouse, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/lib/i18n';
@@ -182,12 +182,19 @@ export default function ProductionOrdersIndex({ orders, filters }: Props) {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-end">
-                                            <Button asChild variant="ghost" size="sm" className="gap-1 text-neutral-600 hover:text-neutral-900">
-                                                <Link href={`/manufacturing/orders/${order.id}`}>
-                                                    <Eye className="h-4 w-4" />
-                                                    <span>{isRtl ? 'عرض والتنفيذ' : 'View & Execute'}</span>
-                                                </Link>
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <Button asChild variant="ghost" size="sm" className="gap-1 text-neutral-600 hover:text-neutral-900">
+                                                    <Link href={`/manufacturing/orders/${order.id}`}>
+                                                        <Eye className="h-4 w-4" />
+                                                        <span>{isRtl ? 'عرض والتنفيذ' : 'View & Execute'}</span>
+                                                    </Link>
+                                                </Button>
+                                                <Button asChild variant="outline" size="sm" className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-900">
+                                                    <Link href={`/manufacturing/orders/${order.id}/print`} title={isRtl ? 'طباعة بطاقة أمر التشغيل' : 'Print Job Card'}>
+                                                        <Printer className="h-3.5 w-3.5" />
+                                                    </Link>
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

@@ -4,6 +4,7 @@ namespace App\Modules\Manufacturing\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Inventory\Models\Warehouse;
+use App\Modules\Localization\Services\QrCodeSvgService;
 use App\Modules\Manufacturing\Actions\CompleteProductionOrderAction;
 use App\Modules\Manufacturing\Models\BillOfMaterial;
 use App\Modules\Manufacturing\Models\ProductionOrder;
@@ -149,5 +150,32 @@ class ProductionOrderController extends Controller
 
         return redirect()->route('manufacturing.orders.show', $order->id)
             ->with('success', "Production Order [{$order->order_number}] completed and finished goods receipted into warehouse.");
+    }
+
+    public function print(string $id, QrCodeSvgService $qrSvgService): Response
+    {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        $order = ProductionOrder::where('company_id', $companyId)
+            ->with([
+                'bom.product',
+                'finishedProduct.unit',
+                'sourceWarehouse',
+                'destinationWarehouse',
+                'items.product.unit',
+                'company',
+            ])
+            ->findOrFail($id);
+
+        $company = $order->company ?: $currentCompany->get();
+        $qrPayload = "Production Order / Job Card: {$order->order_number} | Product: {$order->finishedProduct?->name} | Target: {$order->target_quantity} | Status: {$order->status} | Start: {$order->start_date}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Manufacturing/ProductionOrders/Print', [
+            'order' => $order,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+        ]);
     }
 }

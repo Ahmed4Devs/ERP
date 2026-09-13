@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, BadgeDollarSign, BookOpen, CheckCircle, CreditCard, DollarSign, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeDollarSign, BookOpen, CheckCircle, CreditCard, DollarSign, Printer, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 
@@ -231,6 +231,7 @@ export default function ShowPayrollRun({ payrollRun, bankAccounts }: Props) {
                                 <th className="px-4 py-3 text-right rtl:text-left">Gross</th>
                                 <th className="px-4 py-3 text-right rtl:text-left text-rose-600">GOSI 10%</th>
                                 <th className="px-4 py-3 text-right rtl:text-left font-bold text-indigo-600">Net Salary</th>
+                                <th className="px-4 py-3 text-center">{isRtl ? 'طباعة' : 'Print'}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -268,6 +269,13 @@ export default function ShowPayrollRun({ payrollRun, bankAccounts }: Props) {
                                         </td>
                                         <td className="px-4 py-3 text-right rtl:text-left font-mono font-bold text-indigo-600 dark:text-indigo-400">
                                             {parseFloat(ps.net_salary).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <Button asChild variant="outline" size="sm" className="h-8 w-8 p-0 text-neutral-600 hover:text-neutral-900 dark:text-neutral-400">
+                                                <Link href={`/payroll/payslips/${ps.id}/print`} title={isRtl ? 'طباعة قسيمة الراتب' : 'Print Payslip'}>
+                                                    <Printer className="h-3.5 w-3.5" />
+                                                </Link>
+                                            </Button>
                                         </td>
                                     </tr>
                                 );

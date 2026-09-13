@@ -5,7 +5,9 @@ namespace App\Modules\Accounting\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Queries\AccountsReceivableAgingQuery;
+use App\Modules\Accounting\Queries\BalanceSheetQuery;
 use App\Modules\Accounting\Queries\GeneralLedgerQuery;
+use App\Modules\Accounting\Queries\IncomeStatementQuery;
 use App\Modules\Accounting\Queries\TrialBalanceQuery;
 use App\Modules\Platform\Services\CsvExportService;
 use App\Modules\Purchasing\Queries\AccountsPayableAgingQuery;
@@ -237,5 +239,177 @@ class ReportController extends Controller
         }
 
         return $csvService->stream("ap-aging-{$asOfDate}.csv", $headers, $rows);
+    }
+
+    public function incomeStatement(Request $request, IncomeStatementQuery $query): Response
+    {
+        $startDate = $request->start_date ?: now()->startOfYear()->toDateString();
+        $endDate = $request->end_date ?: now()->toDateString();
+
+        $reportData = $query->execute($startDate, $endDate);
+
+        return Inertia::render('Accounting/Reports/IncomeStatement', [
+            'report' => $reportData,
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
+            'company' => app(CurrentCompany::class)->get(),
+        ]);
+    }
+
+    public function exportIncomeStatement(
+        Request $request,
+        IncomeStatementQuery $query,
+        CsvExportService $csvService
+    ): StreamedResponse {
+        $startDate = $request->start_date ?: now()->startOfYear()->toDateString();
+        $endDate = $request->end_date ?: now()->toDateString();
+
+        $report = $query->execute($startDate, $endDate);
+
+        $headers = [
+            'البند المحاسبي / Account Category',
+            'رمز الحساب / Code',
+            'اسم الحساب بالعربي / Name AR',
+            'اسم الحساب بالإنجليزي / Name EN',
+            'المبلغ / Amount',
+            'النسبة المئوية من الإيراد / % of Revenue',
+        ];
+
+        $rows = [];
+
+        // Revenues
+        $rows[] = ['الإيرادات / Revenues', '', '', '', '', ''];
+        foreach ($report['revenue_accounts'] as $acc) {
+            $rows[] = [
+                'إيراد / Revenue',
+                $acc['code'],
+                $acc['name_ar'] ?? '',
+                $acc['name'],
+                number_format((float) $acc['amount'], 2),
+                $acc['percentage'].'%',
+            ];
+        }
+        $rows[] = ['إجمالي الإيرادات / Total Revenues', '', '', '', number_format((float) $report['total_revenue'], 2), '100.00%'];
+
+        // COGS
+        $rows[] = ['', '', '', '', '', ''];
+        $rows[] = ['تكلفة المبيعات والبضاعة المباعة / Cost of Goods Sold (COGS)', '', '', '', '', ''];
+        foreach ($report['cogs_accounts'] as $acc) {
+            $rows[] = [
+                'تكلفة مبيعات / COGS',
+                $acc['code'],
+                $acc['name_ar'] ?? '',
+                $acc['name'],
+                number_format((float) $acc['amount'], 2),
+                $acc['percentage'].'%',
+            ];
+        }
+        $rows[] = ['إجمالي تكلفة المبيعات / Total COGS', '', '', '', number_format((float) $report['total_cogs'], 2), ''];
+        $rows[] = ['مجمل الربح / Gross Profit', '', '', '', number_format((float) $report['gross_profit'], 2), $report['gross_profit_margin'].'%'];
+
+        // Operating Expenses
+        $rows[] = ['', '', '', '', '', ''];
+        $rows[] = ['المصروفات التشغيلية والإدارية / Operating Expenses', '', '', '', '', ''];
+        foreach ($report['expense_accounts'] as $acc) {
+            $rows[] = [
+                'مصروف تشغيلي / Expense',
+                $acc['code'],
+                $acc['name_ar'] ?? '',
+                $acc['name'],
+                number_format((float) $acc['amount'], 2),
+                $acc['percentage'].'%',
+            ];
+        }
+        $rows[] = ['إجمالي المصروفات التشغيلية / Total Operating Expenses', '', '', '', number_format((float) $report['total_operating_expenses'], 2), ''];
+
+        // Net Profit
+        $rows[] = ['', '', '', '', '', ''];
+        $rows[] = ['صافي الربح / (الخسارة) / Net Profit / (Loss)', '', '', '', number_format((float) $report['net_profit'], 2), $report['net_profit_margin'].'%'];
+
+        return $csvService->stream("income-statement-{$startDate}-to-{$endDate}.csv", $headers, $rows);
+    }
+
+    public function balanceSheet(Request $request, BalanceSheetQuery $query): Response
+    {
+        $asOfDate = $request->as_of_date ?: now()->toDateString();
+        $reportData = $query->execute($asOfDate);
+
+        return Inertia::render('Accounting/Reports/BalanceSheet', [
+            'report' => $reportData,
+            'filters' => [
+                'as_of_date' => $asOfDate,
+            ],
+            'company' => app(CurrentCompany::class)->get(),
+        ]);
+    }
+
+    public function exportBalanceSheet(
+        Request $request,
+        BalanceSheetQuery $query,
+        CsvExportService $csvService
+    ): StreamedResponse {
+        $asOfDate = $request->as_of_date ?: now()->toDateString();
+        $report = $query->execute($asOfDate);
+
+        $headers = [
+            'التصنيف / Classification',
+            'رمز الحساب / Code',
+            'اسم الحساب بالعربي / Name AR',
+            'اسم الحساب بالإنجليزي / Name EN',
+            'الرصيد / Balance',
+        ];
+
+        $rows = [];
+
+        // Assets
+        $rows[] = ['الأصول / Assets', '', '', '', ''];
+        foreach ($report['assets'] as $acc) {
+            $rows[] = [
+                'أصول / Asset',
+                $acc['code'],
+                $acc['name_ar'] ?? '',
+                $acc['name'],
+                number_format((float) $acc['balance'], 2),
+            ];
+        }
+        $rows[] = ['إجمالي الأصول / Total Assets', '', '', '', number_format((float) $report['total_assets'], 2)];
+
+        // Liabilities
+        $rows[] = ['', '', '', '', ''];
+        $rows[] = ['الخصوم والالتزامات / Liabilities', '', '', '', ''];
+        foreach ($report['liabilities'] as $acc) {
+            $rows[] = [
+                'التزامات / Liability',
+                $acc['code'],
+                $acc['name_ar'] ?? '',
+                $acc['name'],
+                number_format((float) $acc['balance'], 2),
+            ];
+        }
+        $rows[] = ['إجمالي الخصوم / Total Liabilities', '', '', '', number_format((float) $report['total_liabilities'], 2)];
+
+        // Equity
+        $rows[] = ['', '', '', '', ''];
+        $rows[] = ['حقوق الملكية / Equity', '', '', '', ''];
+        foreach ($report['equity_accounts'] as $acc) {
+            $rows[] = [
+                'حقوق ملكية / Equity',
+                $acc['code'],
+                $acc['name_ar'] ?? '',
+                $acc['name'],
+                number_format((float) $acc['balance'], 2),
+            ];
+        }
+        $rows[] = ['أرباح الفترة الحالية / Current Period Earnings', '', '', '', number_format((float) $report['retained_or_current_earnings'], 2)];
+        $rows[] = ['إجمالي حقوق الملكية / Total Equity', '', '', '', number_format((float) $report['total_equity'], 2)];
+
+        // Balance Check
+        $rows[] = ['', '', '', '', ''];
+        $rows[] = ['إجمالي الخصوم وحقوق الملكية / Total Liabilities & Equity', '', '', '', number_format((float) $report['total_liabilities_and_equity'], 2)];
+        $rows[] = ['حالة التوازن المحاسبي / Balance Status', '', '', '', $report['is_balanced'] ? 'متزنة / Balanced' : 'غير متزنة / Unbalanced'];
+
+        return $csvService->stream("balance-sheet-{$asOfDate}.csv", $headers, $rows);
     }
 }

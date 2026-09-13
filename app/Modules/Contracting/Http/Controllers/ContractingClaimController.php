@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\Contracting\Actions\ApproveAndBillProgressClaimAction;
 use App\Modules\Contracting\Models\ContractingClaim;
 use App\Modules\Contracting\Models\ContractingClaimItem;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Projects\Models\Project;
 use App\Shared\Context\CurrentCompany;
@@ -167,5 +169,32 @@ class ContractingClaimController extends Controller
 
         return redirect()->route('contracting.claims.show', $claim->id)
             ->with('success', 'Progress claim certified and official Service Invoice generated.');
+    }
+
+    public function print(string $id, TafqeetService $tafqeetService, QrCodeSvgService $qrSvgService): Response
+    {
+        $currentCompany = app(CurrentCompany::class);
+        $companyId = $currentCompany->id();
+
+        $claim = ContractingClaim::where('company_id', $companyId)
+            ->with(['project', 'customer', 'invoice', 'items', 'company'])
+            ->findOrFail($id);
+
+        $company = $claim->company ?: $currentCompany->get();
+        $currency = $company->currency ?? 'SAR';
+        $customerName = $claim->customer ? ($claim->customer->name_ar ?: $claim->customer->name) : 'Customer';
+
+        $qrPayload = "Progress Claim: {$claim->claim_number} | Project: {$claim->project?->name} | Client: {$customerName} | Net Claim: {$claim->total_amount} {$currency} | Date: {$claim->claim_date}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Contracting/Claims/Print', [
+            'claim' => $claim,
+            'company' => $company,
+            'qrCodeDataUri' => $qrCodeDataUri,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($claim->total_amount),
+                'en' => $tafqeetService->inEnglish($claim->total_amount),
+            ],
+        ]);
     }
 }

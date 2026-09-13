@@ -10,6 +10,7 @@ import {
     Layers,
     Lock,
     ExternalLink,
+    Printer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
@@ -96,26 +97,35 @@ export default function ContractingClaimShow({ claim }: Props) {
                     </div>
                 </div>
 
-                {!isBilled ? (
-                    <Button
-                        disabled={isBilling}
-                        onClick={handleBill}
-                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold"
-                    >
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>{isBilling ? (isRtl ? 'جارٍ الفوترة...' : 'Generating Invoice...') : (isRtl ? 'اعتماد المستخلص وإصدار الفاتورة' : 'Certify & Generate Invoice')}</span>
+                <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" className="gap-2">
+                        <Link href={`/contracting/claims/${claim.id}/print`}>
+                            <Printer className="h-4 w-4" />
+                            <span>{isRtl ? 'طباعة شهادة المستخلص' : 'Print Certificate'}</span>
+                        </Link>
                     </Button>
-                ) : (
-                    claim.invoice && (
-                        <Button asChild variant="outline" className="gap-2 border-indigo-200 text-indigo-700 dark:text-indigo-400">
-                            <Link href={`/invoices/${claim.invoice.id}`}>
-                                <ReceiptText className="h-4 w-4" />
-                                <span>{isRtl ? 'عرض الفاتورة الرسمية' : 'View Service Invoice'} (#{claim.invoice.invoice_number})</span>
-                                <ExternalLink className="h-3 w-3" />
-                            </Link>
+
+                    {!isBilled ? (
+                        <Button
+                            disabled={isBilling}
+                            onClick={handleBill}
+                            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold"
+                        >
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span>{isBilling ? (isRtl ? 'جارٍ الفوترة...' : 'Generating Invoice...') : (isRtl ? 'اعتماد المستخلص وإصدار الفاتورة' : 'Certify & Generate Invoice')}</span>
                         </Button>
-                    )
-                )}
+                    ) : (
+                        claim.invoice && (
+                            <Button asChild variant="outline" className="gap-2 border-indigo-200 text-indigo-700 dark:text-indigo-400">
+                                <Link href={`/invoices/${claim.invoice.id}`}>
+                                    <ReceiptText className="h-4 w-4" />
+                                    <span>{isRtl ? 'عرض الفاتورة الرسمية' : 'View Service Invoice'} (#{claim.invoice.invoice_number})</span>
+                                    <ExternalLink className="h-3 w-3" />
+                                </Link>
+                            </Button>
+                        )
+                    )}
+                </div>
             </div>
 
             {/* Financial Summary */}

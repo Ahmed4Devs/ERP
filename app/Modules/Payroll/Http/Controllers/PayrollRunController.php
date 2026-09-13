@@ -4,7 +4,10 @@ namespace App\Modules\Payroll\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Localization\Services\QrCodeSvgService;
+use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\Payroll\Models\PayrollRun;
+use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\DisbursePayrollAction;
 use App\Modules\Payroll\Services\GeneratePayrollRunAction;
 use App\Modules\Payroll\Services\PostPayrollRunAction;
@@ -106,5 +109,38 @@ class PayrollRunController extends Controller
         );
 
         return redirect()->route('payroll.runs.show', $payrollRun->id)->with('success', "Payroll run {$payrollRun->run_number} disbursed and settled.");
+    }
+
+    public function printPayslip(string $id, TafqeetService $tafqeetService, QrCodeSvgService $qrSvgService): Response
+    {
+        $companyId = app(CurrentCompany::class)->id();
+
+        $payslip = Payslip::where('company_id', $companyId)
+            ->with([
+                'payrollRun',
+                'employee.department',
+                'employee.designation',
+                'employee.branch',
+                'company',
+            ])
+            ->findOrFail($id);
+
+        $company = $payslip->company ?: app(CurrentCompany::class)->get();
+        $employee = $payslip->employee;
+        $employeeName = trim(($employee?->first_name_ar ?: $employee?->first_name).' '.($employee?->last_name_ar ?: $employee?->last_name));
+        $currency = $company->currency ?? 'SAR';
+
+        $qrPayload = "Payslip: {$payslip->payrollRun?->run_number} | Employee: {$employeeName} ({$employee?->employee_number}) | Net: {$payslip->net_salary} {$currency} | Period: {$payslip->payrollRun?->period_year}-{$payslip->payrollRun?->period_month}";
+        $qrCodeDataUri = $qrSvgService->generateDataUri($qrPayload, 160);
+
+        return Inertia::render('Payroll/Payslips/Print', [
+            'payslip' => $payslip,
+            'company' => $company,
+            'amountInWords' => [
+                'ar' => $tafqeetService->inArabic($payslip->net_salary),
+                'en' => $tafqeetService->inEnglish($payslip->net_salary),
+            ],
+            'qrCodeDataUri' => $qrCodeDataUri,
+        ]);
     }
 }

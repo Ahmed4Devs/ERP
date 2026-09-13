@@ -3,8 +3,10 @@
 use App\Modules\Accounting\Http\Controllers\AccountController;
 use App\Modules\Accounting\Http\Controllers\FiscalPeriodController;
 use App\Modules\Accounting\Http\Controllers\InvoiceController;
+use App\Modules\Accounting\Http\Controllers\JournalEntryController;
 use App\Modules\Accounting\Http\Controllers\ReceiptController;
 use App\Modules\Accounting\Http\Controllers\ReportController;
+use App\Modules\Accounting\Http\Controllers\StatementController;
 use App\Modules\Assets\Http\Controllers\DepreciationController;
 use App\Modules\Assets\Http\Controllers\FixedAssetController;
 use App\Modules\Contracting\Http\Controllers\ContractingClaimController;
@@ -102,6 +104,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reports/general-ledger', [ReportController::class, 'generalLedger'])->name('reports.general-ledger');
     Route::get('/reports/general-ledger/export', [ReportController::class, 'exportGeneralLedger'])->name('reports.general-ledger.export');
 
+    Route::get('/reports/income-statement', [ReportController::class, 'incomeStatement'])->name('reports.income-statement');
+    Route::get('/reports/income-statement/export', [ReportController::class, 'exportIncomeStatement'])->name('reports.income-statement.export');
+
+    Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
+    Route::get('/reports/balance-sheet/export', [ReportController::class, 'exportBalanceSheet'])->name('reports.balance-sheet.export');
+
+    Route::get('/reports/customer-statement', [StatementController::class, 'customerStatement'])->name('reports.customer-statement');
+    Route::get('/reports/customer-statement/export', [StatementController::class, 'exportCustomerStatement'])->name('reports.customer-statement.export');
+
+    Route::get('/reports/vendor-statement', [StatementController::class, 'vendorStatement'])->name('reports.vendor-statement');
+    Route::get('/reports/vendor-statement/export', [StatementController::class, 'exportVendorStatement'])->name('reports.vendor-statement.export');
+
     Route::get('/reports/ar-aging', [ReportController::class, 'aging'])->name('reports.ar-aging');
     Route::get('/reports/ar-aging/export', [ReportController::class, 'exportArAging'])->name('reports.ar-aging.export');
 
@@ -110,6 +124,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/reports/inventory-valuation', [InventoryReportController::class, 'valuation'])->name('reports.inventory-valuation');
     Route::get('/reports/inventory-valuation/export', [InventoryReportController::class, 'exportValuation'])->name('reports.inventory-valuation.export');
+
+    // General Journal Entries
+    Route::get('/accounting/journal-entries', [JournalEntryController::class, 'index'])->name('accounting.journal-entries.index');
+    Route::get('/accounting/journal-entries/{journalEntry}', [JournalEntryController::class, 'show'])->name('accounting.journal-entries.show');
+    Route::get('/accounting/journal-entries/{journalEntry}/print', [JournalEntryController::class, 'print'])->name('accounting.journal-entries.print');
 
     // Inventory & Distribution
     Route::get('/inventory/products', [ProductController::class, 'index'])->name('inventory.products.index');
@@ -161,6 +180,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payroll/runs/{payrollRun}', [PayrollRunController::class, 'show'])->name('payroll.runs.show');
     Route::post('/payroll/runs/{payrollRun}/post', [PayrollRunController::class, 'postRun'])->name('payroll.runs.post');
     Route::post('/payroll/runs/{payrollRun}/disburse', [PayrollRunController::class, 'disburse'])->name('payroll.runs.disburse');
+    Route::get('/payroll/payslips/{payslip}/print', [PayrollRunController::class, 'printPayslip'])->name('payroll.payslips.print');
 
     // Fixed Assets & Depreciation
     Route::get('/assets/register', [FixedAssetController::class, 'index'])->name('assets.register.index');
@@ -243,6 +263,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/manufacturing/orders/create', [ProductionOrderController::class, 'create'])->name('manufacturing.orders.create');
     Route::post('/manufacturing/orders', [ProductionOrderController::class, 'store'])->name('manufacturing.orders.store');
     Route::get('/manufacturing/orders/{order}', [ProductionOrderController::class, 'show'])->name('manufacturing.orders.show');
+    Route::get('/manufacturing/orders/{order}/print', [ProductionOrderController::class, 'print'])->name('manufacturing.orders.print');
     Route::post('/manufacturing/orders/{order}/complete', [ProductionOrderController::class, 'complete'])->name('manufacturing.orders.complete');
 
     // Trade & Wholesale Pricing
@@ -257,6 +278,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/contracting/claims/create', [ContractingClaimController::class, 'create'])->name('contracting.claims.create');
     Route::post('/contracting/claims', [ContractingClaimController::class, 'store'])->name('contracting.claims.store');
     Route::get('/contracting/claims/{claim}', [ContractingClaimController::class, 'show'])->name('contracting.claims.show');
+    Route::get('/contracting/claims/{claim}/print', [ContractingClaimController::class, 'print'])->name('contracting.claims.print');
     Route::post('/contracting/claims/{claim}/bill', [ContractingClaimController::class, 'bill'])->name('contracting.claims.bill');
 
     // Master Data Bulk Import & Export Hub

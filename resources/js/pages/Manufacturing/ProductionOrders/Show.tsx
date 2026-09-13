@@ -10,6 +10,7 @@ import {
     DollarSign,
     Box,
     Clock,
+    Printer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -105,15 +106,24 @@ export default function ProductionOrderShow({ order }: Props) {
                     </div>
                 </div>
 
-                {!isCompleted && (
-                    <Button
-                        onClick={() => setCompleteModalOpen(true)}
-                        className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                    >
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>{isRtl ? 'إكمال الإنتاج وتوريد المخزون' : 'Complete & Receipt Stock'}</span>
+                <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" className="gap-2">
+                        <Link href={`/manufacturing/orders/${order.id}/print`}>
+                            <Printer className="h-4 w-4" />
+                            <span>{isRtl ? 'طباعة بطاقة التشغيل' : 'Print Job Card'}</span>
+                        </Link>
                     </Button>
-                )}
+
+                    {!isCompleted && (
+                        <Button
+                            onClick={() => setCompleteModalOpen(true)}
+                            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        >
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span>{isRtl ? 'إكمال الإنتاج وتوريد المخزون' : 'Complete & Receipt Stock'}</span>
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Summary Metrics */}

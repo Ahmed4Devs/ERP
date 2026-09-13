@@ -35,6 +35,9 @@ import {
     Percent,
     Cpu,
     Database,
+    Scale,
+    TrendingUp,
+    UserCheck,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -170,6 +173,31 @@ export function AppSidebar() {
                     title: t('nav.accounts', 'دليل الحسابات'),
                     href: '/accounts',
                     icon: Landmark,
+                },
+                {
+                    title: t('nav.journalEntries', 'قيود اليومية العامة'),
+                    href: '/accounting/journal-entries',
+                    icon: BookOpen,
+                },
+                {
+                    title: t('nav.incomeStatement', 'قائمة الدخل (P&L)'),
+                    href: '/reports/income-statement',
+                    icon: TrendingUp,
+                },
+                {
+                    title: t('nav.balanceSheet', 'الميزانية العمومية'),
+                    href: '/reports/balance-sheet',
+                    icon: Scale,
+                },
+                {
+                    title: t('nav.customerStatement', 'كشف حساب عميل'),
+                    href: '/reports/customer-statement',
+                    icon: UserCheck,
+                },
+                {
+                    title: t('nav.vendorStatement', 'كشف حساب مورد'),
+                    href: '/reports/vendor-statement',
+                    icon: Building2,
                 },
                 {
                     title: t('nav.transfers', 'تحويلات الخزينة'),
