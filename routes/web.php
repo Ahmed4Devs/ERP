@@ -35,6 +35,7 @@ use App\Modules\Inventory\Http\Controllers\StockAdjustmentController;
 use App\Modules\Inventory\Http\Controllers\StockMovementController;
 use App\Modules\Inventory\Http\Controllers\StockTransferController;
 use App\Modules\Inventory\Http\Controllers\WarehouseController;
+use App\Modules\Localization\Http\Controllers\ZatcaIntegrationController;
 use App\Modules\Manufacturing\Http\Controllers\BomController;
 use App\Modules\Manufacturing\Http\Controllers\ProductionOrderController;
 use App\Modules\MasterData\Http\Controllers\PartyController;
@@ -107,6 +108,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
     Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
     Route::get('/invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print');
+    Route::post('/invoices/{invoice}/zatca/transmit', [ZatcaIntegrationController::class, 'transmitInvoice'])->name('invoices.zatca.transmit');
+    Route::get('/invoices/{invoice}/zatca/xml', [ZatcaIntegrationController::class, 'downloadXml'])->name('invoices.zatca.xml');
+
+    // ZATCA Phase 2 (Fatoora) Platform Integration
+    Route::get('/settings/zatca', [ZatcaIntegrationController::class, 'index'])->name('settings.zatca.index');
+    Route::put('/settings/zatca/config', [ZatcaIntegrationController::class, 'updateConfig'])->name('settings.zatca.config.update');
+    Route::post('/settings/zatca/csr', [ZatcaIntegrationController::class, 'generateCsr'])->name('settings.zatca.csr.generate');
+    Route::post('/settings/zatca/csid', [ZatcaIntegrationController::class, 'requestCsid'])->name('settings.zatca.csid.request');
+    Route::post('/settings/zatca/compliance', [ZatcaIntegrationController::class, 'runCompliance'])->name('settings.zatca.compliance.run');
 
     // Receipts & Collections
     Route::get('/receipts', [ReceiptController::class, 'index'])->name('receipts.index');

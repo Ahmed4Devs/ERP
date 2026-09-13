@@ -37,6 +37,17 @@ class ServiceInvoice extends Model
         'currency',
         'journal_entry_id',
         'notes',
+        'zatca_status',
+        'zatca_invoice_type',
+        'zatca_uuid',
+        'zatca_invoice_hash',
+        'zatca_previous_hash',
+        'zatca_qr_code',
+        'zatca_xml',
+        'zatca_cleared_xml',
+        'zatca_response',
+        'zatca_submitted_at',
+        'zatca_error',
     ];
 
     protected $casts = [
@@ -48,6 +59,8 @@ class ServiceInvoice extends Model
         'total' => 'decimal:6',
         'amount_paid' => 'decimal:6',
         'balance_due' => 'decimal:6',
+        'zatca_response' => 'array',
+        'zatca_submitted_at' => 'datetime',
     ];
 
     public function lines(): HasMany

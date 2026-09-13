@@ -21,6 +21,7 @@ import {
     LayoutGrid,
     LifeBuoy,
     Lock,
+    ShieldCheck,
     PackageCheck,
     Receipt,
     ReceiptText,
@@ -45,7 +46,6 @@ import {
     RotateCcw,
     Archive,
     Barcode,
-    ShieldCheck,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -261,6 +261,11 @@ export function AppSidebar() {
                     title: t('nav.vatReturns', 'إقرار ضريبة القيمة المضافة'),
                     href: '/accounting/vat-returns',
                     icon: Percent,
+                },
+                {
+                    title: t('nav.zatcaPhase2', 'الربط مع زاتكا (المرحلة الثانية)'),
+                    href: '/settings/zatca',
+                    icon: ShieldCheck,
                 },
                 {
                     title: t('nav.pettyCash', 'العهد النقدية والمصروفات النثرية'),
