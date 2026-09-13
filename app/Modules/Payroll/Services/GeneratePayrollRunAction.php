@@ -4,6 +4,7 @@ namespace App\Modules\Payroll\Services;
 
 use App\Modules\HR\Models\Attendance;
 use App\Modules\HR\Models\Employee;
+use App\Modules\HR\Models\EmployeeLoanInstallment;
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
 use Carbon\Carbon;
@@ -89,12 +90,25 @@ class GeneratePayrollRunAction
 
                 // Synthetic Social Insurance / GOSI test rate: 10% on basic salary
                 $socialInsurance = bcmul($basic, '0.100000', 6);
-                $otherDeductions = '0.000000';
+
+                // Auto-deduct active employee loan installments for this period
+                $loanInstallments = EmployeeLoanInstallment::where('employee_id', $emp->id)
+                    ->where('period_year', $year)
+                    ->where('period_month', $month)
+                    ->where('status', 'pending')
+                    ->get();
+
+                $loanDeduction = '0.000000';
+                foreach ($loanInstallments as $inst) {
+                    $loanDeduction = bcadd($loanDeduction, (string) $inst->amount, 6);
+                }
+
+                $otherDeductions = $loanDeduction;
                 $deductionsSubtotal = bcadd($socialInsurance, $otherDeductions, 6);
 
                 $net = bcsub($gross, $deductionsSubtotal, 6);
 
-                Payslip::create([
+                $payslip = Payslip::create([
                     'tenant_id' => $tenantId,
                     'company_id' => $companyId,
                     'payroll_run_id' => $run->id,
@@ -111,6 +125,10 @@ class GeneratePayrollRunAction
                     'net_salary' => $net,
                     'status' => 'draft',
                 ]);
+
+                foreach ($loanInstallments as $inst) {
+                    $inst->update(['payslip_id' => $payslip->id]);
+                }
 
                 $totalBasic = bcadd($totalBasic, $basic, 6);
                 $totalAllowances = bcadd($totalAllowances, $allowancesSubtotal, 6);

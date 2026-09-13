@@ -74,6 +74,21 @@ class Employee extends Model
         return $this->hasMany(Payslip::class, 'employee_id');
     }
 
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class, 'employee_id');
+    }
+
+    public function loans(): HasMany
+    {
+        return $this->hasMany(EmployeeLoan::class, 'employee_id');
+    }
+
+    public function endOfServiceSettlements(): HasMany
+    {
+        return $this->hasMany(EndOfServiceSettlement::class, 'employee_id');
+    }
+
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");

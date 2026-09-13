@@ -4,6 +4,7 @@ namespace App\Modules\Payroll\Services;
 
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Services\PostingEngine;
+use App\Modules\HR\Models\EmployeeLoanInstallment;
 use App\Modules\Payroll\Models\PayrollRun;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -81,6 +82,35 @@ class DisbursePayrollAction
             }
 
             $run->payslips()->update(['status' => 'paid']);
+
+            // Update linked loan installments
+            $payslipIds = $run->payslips()->pluck('id');
+            $installments = EmployeeLoanInstallment::whereIn('payslip_id', $payslipIds)->get();
+
+            foreach ($installments as $inst) {
+                $inst->update([
+                    'status' => 'deducted',
+                    'deducted_at' => now(),
+                ]);
+
+                $loan = $inst->loan;
+                if ($loan) {
+                    $newPaid = bcadd((string) $loan->paid_amount, (string) $inst->amount, 6);
+                    $newRemaining = bcsub((string) $loan->total_amount, $newPaid, 6);
+                    if (bccomp($newRemaining, '0.000000', 6) <= 0) {
+                        $newRemaining = '0.000000';
+                        $loanStatus = 'completed';
+                    } else {
+                        $loanStatus = 'active';
+                    }
+
+                    $loan->update([
+                        'paid_amount' => $newPaid,
+                        'remaining_amount' => $newRemaining,
+                        'status' => $loanStatus,
+                    ]);
+                }
+            }
 
             return $run->refresh();
         });

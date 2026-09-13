@@ -17,6 +17,9 @@ use App\Modules\CRM\Http\Controllers\LeadController;
 use App\Modules\HR\Http\Controllers\AttendanceController;
 use App\Modules\HR\Http\Controllers\DepartmentController;
 use App\Modules\HR\Http\Controllers\EmployeeController;
+use App\Modules\HR\Http\Controllers\EmployeeLoanController;
+use App\Modules\HR\Http\Controllers\EndOfServiceController;
+use App\Modules\HR\Http\Controllers\LeaveRequestController;
 use App\Modules\Inventory\Http\Controllers\DeliveryNoteController;
 use App\Modules\Inventory\Http\Controllers\GoodsReceiptController;
 use App\Modules\Inventory\Http\Controllers\InventoryReportController;
@@ -203,6 +206,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/hr/attendances', [AttendanceController::class, 'index'])->name('hr.attendances.index');
     Route::post('/hr/attendances', [AttendanceController::class, 'store'])->name('hr.attendances.store');
+
+    // Leaves Management
+    Route::get('/hr/leaves', [LeaveRequestController::class, 'index'])->name('hr.leaves.index');
+    Route::post('/hr/leaves', [LeaveRequestController::class, 'store'])->name('hr.leaves.store');
+    Route::post('/hr/leaves/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('hr.leaves.approve');
+    Route::post('/hr/leaves/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('hr.leaves.reject');
+
+    // Employee Loans & Advances
+    Route::get('/hr/loans', [EmployeeLoanController::class, 'index'])->name('hr.loans.index');
+    Route::get('/hr/loans/create', [EmployeeLoanController::class, 'create'])->name('hr.loans.create');
+    Route::post('/hr/loans', [EmployeeLoanController::class, 'store'])->name('hr.loans.store');
+    Route::get('/hr/loans/{loan}', [EmployeeLoanController::class, 'show'])->name('hr.loans.show');
+
+    // End of Service Gratuity & Settlements
+    Route::get('/hr/end-of-service', [EndOfServiceController::class, 'index'])->name('hr.end-of-service.index');
+    Route::get('/hr/end-of-service/create', [EndOfServiceController::class, 'create'])->name('hr.end-of-service.create');
+    Route::post('/hr/end-of-service/preview', [EndOfServiceController::class, 'previewCalculation'])->name('hr.end-of-service.preview');
+    Route::post('/hr/end-of-service', [EndOfServiceController::class, 'store'])->name('hr.end-of-service.store');
+    Route::get('/hr/end-of-service/{settlement}', [EndOfServiceController::class, 'show'])->name('hr.end-of-service.show');
+    Route::post('/hr/end-of-service/{settlement}/settle', [EndOfServiceController::class, 'settle'])->name('hr.end-of-service.settle');
+    Route::get('/hr/end-of-service/{settlement}/print', [EndOfServiceController::class, 'print'])->name('hr.end-of-service.print');
 
     // Payroll Framework
     Route::get('/payroll/runs', [PayrollRunController::class, 'index'])->name('payroll.runs.index');

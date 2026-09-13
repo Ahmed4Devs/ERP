@@ -39,6 +39,9 @@ import {
     Scale,
     TrendingUp,
     UserCheck,
+    Calendar,
+    HandCoins,
+    Award,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -264,6 +267,21 @@ export function AppSidebar() {
                     title: t('nav.attendance', 'الحضور وساعات العمل'),
                     href: '/hr/attendances',
                     icon: CalendarCheck,
+                },
+                {
+                    title: t('nav.leaves', 'إدارة الإجازات والأرصدة'),
+                    href: '/hr/leaves',
+                    icon: Calendar,
+                },
+                {
+                    title: t('nav.loans', 'سلف وقروض الموظفين'),
+                    href: '/hr/loans',
+                    icon: HandCoins,
+                },
+                {
+                    title: t('nav.endOfService', 'مكافأة نهاية الخدمة والمخالصة'),
+                    href: '/hr/end-of-service',
+                    icon: Award,
                 },
                 {
                     title: t('nav.payrollRuns', 'مسيرات الرواتب'),
