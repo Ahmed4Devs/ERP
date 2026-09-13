@@ -42,6 +42,7 @@ import {
     Calendar,
     HandCoins,
     Award,
+    RotateCcw,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -108,6 +109,11 @@ export function AppSidebar() {
                     href: '/receipts',
                     icon: Banknote,
                 },
+                {
+                    title: t('nav.creditNotes', 'الإشعارات الدائنة (المرتجعات)'),
+                    href: '/sales/credit-notes',
+                    icon: RotateCcw,
+                },
             ],
         },
         {
@@ -127,6 +133,11 @@ export function AppSidebar() {
                     title: t('nav.vendorPayments', 'سندات صرف الموردين'),
                     href: '/vendor-payments',
                     icon: CreditCard,
+                },
+                {
+                    title: t('nav.debitNotes', 'الإشعارات المدينة (المرتجعات)'),
+                    href: '/purchasing/debit-notes',
+                    icon: RotateCcw,
                 },
             ],
         },

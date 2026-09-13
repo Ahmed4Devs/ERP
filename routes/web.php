@@ -36,12 +36,14 @@ use App\Modules\Platform\Http\Controllers\ContextController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\DataImportController;
 use App\Modules\Projects\Http\Controllers\ProjectController;
+use App\Modules\Purchasing\Http\Controllers\DebitNoteController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
 use App\Modules\Purchasing\Http\Controllers\VendorPaymentController;
 use App\Modules\Retail\Http\Controllers\PosOrderController;
 use App\Modules\Retail\Http\Controllers\PosSessionController;
 use App\Modules\Retail\Http\Controllers\PosTerminalController;
+use App\Modules\Sales\Http\Controllers\CreditNoteController;
 use App\Modules\Sales\Http\Controllers\SalesOrderController;
 use App\Modules\Sales\Http\Controllers\SalesQuotationController;
 use App\Modules\Support\Http\Controllers\SupportTicketController;
@@ -119,6 +121,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/vendor-payments', [VendorPaymentController::class, 'index'])->name('vendor-payments.index');
     Route::post('/vendor-payments', [VendorPaymentController::class, 'store'])->name('vendor-payments.store');
     Route::get('/vendor-payments/{vendorPayment}/print', [VendorPaymentController::class, 'print'])->name('vendor-payments.print');
+
+    // Purchasing Debit Notes (Vendor Returns & VAT Recovery Adjustment)
+    Route::get('/purchasing/debit-notes', [DebitNoteController::class, 'index'])->name('purchasing.debit-notes.index');
+    Route::get('/purchasing/debit-notes/create', [DebitNoteController::class, 'create'])->name('purchasing.debit-notes.create');
+    Route::post('/purchasing/debit-notes', [DebitNoteController::class, 'store'])->name('purchasing.debit-notes.store');
+    Route::get('/purchasing/debit-notes/{debitNote}', [DebitNoteController::class, 'show'])->name('purchasing.debit-notes.show');
+    Route::post('/purchasing/debit-notes/{debitNote}/post', [DebitNoteController::class, 'post'])->name('purchasing.debit-notes.post');
+    Route::get('/purchasing/debit-notes/{debitNote}/print', [DebitNoteController::class, 'print'])->name('purchasing.debit-notes.print');
 
     // Treasury Transfers
     Route::get('/treasury/transfers', [TreasuryTransferController::class, 'index'])->name('treasury.transfers.index');
@@ -270,6 +280,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/sales/orders/{order}', [SalesOrderController::class, 'show'])->name('sales.orders.show');
     Route::get('/sales/orders/{order}/print', [SalesOrderController::class, 'print'])->name('sales.orders.print');
     Route::put('/sales/orders/{order}/status', [SalesOrderController::class, 'updateStatus'])->name('sales.orders.status');
+
+    // Sales Credit Notes (Customer Returns & Output Tax Deduction)
+    Route::get('/sales/credit-notes', [CreditNoteController::class, 'index'])->name('sales.credit-notes.index');
+    Route::get('/sales/credit-notes/create', [CreditNoteController::class, 'create'])->name('sales.credit-notes.create');
+    Route::post('/sales/credit-notes', [CreditNoteController::class, 'store'])->name('sales.credit-notes.store');
+    Route::get('/sales/credit-notes/{creditNote}', [CreditNoteController::class, 'show'])->name('sales.credit-notes.show');
+    Route::post('/sales/credit-notes/{creditNote}/post', [CreditNoteController::class, 'post'])->name('sales.credit-notes.post');
+    Route::get('/sales/credit-notes/{creditNote}/print', [CreditNoteController::class, 'print'])->name('sales.credit-notes.print');
 
     // Projects & Timesheets
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
