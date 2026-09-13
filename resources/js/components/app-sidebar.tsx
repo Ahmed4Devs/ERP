@@ -44,6 +44,8 @@ import {
     Award,
     RotateCcw,
     Archive,
+    Barcode,
+    ShieldCheck,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -164,6 +166,16 @@ export function AppSidebar() {
                     title: t('nav.deliveryNotes', 'سندات تسليم البضاعة'),
                     href: '/inventory/delivery-notes',
                     icon: PackageCheck,
+                },
+                {
+                    title: t('nav.batches', 'الدفعات وتواريخ الصلاحية (FEFO)'),
+                    href: '/inventory/batches',
+                    icon: Barcode,
+                },
+                {
+                    title: t('nav.serials', 'الأرقام التسلسلية والضمان'),
+                    href: '/inventory/serials',
+                    icon: ShieldCheck,
                 },
                 {
                     title: t('nav.stockMovements', 'حركات المخزون'),

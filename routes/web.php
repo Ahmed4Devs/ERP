@@ -25,7 +25,9 @@ use App\Modules\HR\Http\Controllers\LeaveRequestController;
 use App\Modules\Inventory\Http\Controllers\DeliveryNoteController;
 use App\Modules\Inventory\Http\Controllers\GoodsReceiptController;
 use App\Modules\Inventory\Http\Controllers\InventoryReportController;
+use App\Modules\Inventory\Http\Controllers\ProductBatchController;
 use App\Modules\Inventory\Http\Controllers\ProductController;
+use App\Modules\Inventory\Http\Controllers\ProductSerialController;
 use App\Modules\Inventory\Http\Controllers\StockAdjustmentController;
 use App\Modules\Inventory\Http\Controllers\StockMovementController;
 use App\Modules\Inventory\Http\Controllers\StockTransferController;
@@ -212,6 +214,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inventory/adjustments', [StockAdjustmentController::class, 'index'])->name('inventory.adjustments.index');
     Route::get('/inventory/adjustments/create', [StockAdjustmentController::class, 'create'])->name('inventory.adjustments.create');
     Route::post('/inventory/adjustments', [StockAdjustmentController::class, 'store'])->name('inventory.adjustments.store');
+
+    // Batches & FEFO Tracking
+    Route::get('/inventory/batches', [ProductBatchController::class, 'index'])->name('inventory.batches.index');
+    Route::get('/inventory/batches/create', [ProductBatchController::class, 'create'])->name('inventory.batches.create');
+    Route::post('/inventory/batches', [ProductBatchController::class, 'store'])->name('inventory.batches.store');
+    Route::get('/inventory/batches/recommend/fefo', [ProductBatchController::class, 'fefoRecommendation'])->name('inventory.batches.fefo');
+    Route::get('/inventory/batches/{batch}', [ProductBatchController::class, 'show'])->name('inventory.batches.show');
+
+    // Serial Numbers & Warranty
+    Route::get('/inventory/serials', [ProductSerialController::class, 'index'])->name('inventory.serials.index');
+    Route::get('/inventory/serials/create', [ProductSerialController::class, 'create'])->name('inventory.serials.create');
+    Route::post('/inventory/serials', [ProductSerialController::class, 'store'])->name('inventory.serials.store');
+    Route::get('/inventory/serials/verify/warranty', [ProductSerialController::class, 'verifyWarranty'])->name('inventory.serials.verify-warranty');
+    Route::get('/inventory/serials/{serial}', [ProductSerialController::class, 'show'])->name('inventory.serials.show');
 
     // Human Resources (HR)
     Route::get('/hr/employees', [EmployeeController::class, 'index'])->name('hr.employees.index');

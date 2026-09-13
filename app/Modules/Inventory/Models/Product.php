@@ -35,6 +35,9 @@ class Product extends Model
         'revenue_account_id',
         'grni_account_id',
         'tax_rate',
+        'tracking_type',
+        'shelf_life_days',
+        'warranty_months',
         'is_active',
     ];
 
@@ -43,6 +46,8 @@ class Product extends Model
         'moving_average_cost' => 'decimal:6',
         'list_price' => 'decimal:6',
         'tax_rate' => 'decimal:6',
+        'shelf_life_days' => 'integer',
+        'warranty_months' => 'integer',
         'is_active' => 'boolean',
     ];
 
@@ -84,5 +89,15 @@ class Product extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class, 'product_id');
+    }
+
+    public function batches(): HasMany
+    {
+        return $this->hasMany(ProductBatch::class, 'product_id');
+    }
+
+    public function serials(): HasMany
+    {
+        return $this->hasMany(ProductSerial::class, 'product_id');
     }
 }
