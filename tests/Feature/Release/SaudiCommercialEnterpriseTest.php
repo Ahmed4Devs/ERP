@@ -13,6 +13,7 @@ use App\Modules\Organization\Models\Company;
 use App\Modules\Payroll\Services\GeneratePayrollRunAction;
 use App\Modules\Payroll\Services\GosiCalculatorService;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Platform\Services\ExecutiveBiDashboardService;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Modules\Sales\Models\SalesOrderLine;
 use App\Modules\Sales\Services\CustomerCreditService;
@@ -313,4 +314,55 @@ test('commercial sales order conversion enforces customer credit limit and gener
     $invoice2 = ServiceInvoice::where('sales_order_id', $order2->id)->first();
     expect($invoice2)->not->toBeNull()
         ->and($invoice2->status)->toBe('posted');
+});
+
+test('c-level executive financial intelligence and bi dashboard provides working capital liquidity ratios and zatca telemetry', function () {
+    // 1. Check executive dashboard route
+    $response = $this->actingAs($this->user)->get(route('dashboard'));
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('dashboard')
+        ->has('biMetrics')
+        ->has('biMetrics.financial_intelligence')
+        ->has('biMetrics.monthly_trends')
+        ->has('biMetrics.zatca_compliance')
+        ->has('biMetrics.commercial_pipeline')
+        ->where('biMetrics.financial_intelligence.current_ratio', fn ($val) => is_numeric($val))
+        ->where('biMetrics.zatca_compliance.compliance_rate', fn ($val) => is_numeric($val))
+    );
+
+    // 2. Test ExecutiveBiDashboardService directly
+    $service = app(ExecutiveBiDashboardService::class);
+    $data = $service->getExecutiveBiMetrics($this->company->id);
+
+    expect($data)->toHaveKeys([
+        'financial_intelligence',
+        'monthly_trends',
+        'zatca_compliance',
+        'commercial_pipeline',
+        'top_customers',
+    ]);
+
+    expect($data['financial_intelligence'])->toHaveKeys([
+        'working_capital',
+        'current_ratio',
+        'quick_ratio',
+        'cash_ratio',
+        'current_assets',
+        'current_liabilities',
+        'cash_and_bank',
+        'inventory_valuation',
+        'accounts_receivable',
+        'accounts_payable',
+        'dso_days',
+    ]);
+
+    expect($data['zatca_compliance'])->toHaveKeys([
+        'cleared',
+        'reported',
+        'pending',
+        'rejected',
+        'total_invoices',
+        'compliance_rate',
+    ]);
 });

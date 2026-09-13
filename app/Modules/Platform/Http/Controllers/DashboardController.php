@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\ServiceInvoice;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\MasterData\Models\Party;
+use App\Modules\Platform\Services\ExecutiveBiDashboardService;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Purchasing\Models\VendorBill;
 use App\Modules\Retail\Models\PosSession;
@@ -17,7 +18,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, ExecutiveBiDashboardService $biDashboardService): Response
     {
         $currentCompany = app(CurrentCompany::class);
         $company = $currentCompany->get();
@@ -38,6 +39,37 @@ class DashboardController extends Controller
 
         $recentInvoices = [];
         $recentBills = [];
+        $biMetrics = [
+            'financial_intelligence' => [
+                'working_capital' => 0.0,
+                'current_ratio' => 1.0,
+                'quick_ratio' => 1.0,
+                'cash_ratio' => 1.0,
+                'current_assets' => 0.0,
+                'current_liabilities' => 0.0,
+                'cash_and_bank' => 0.0,
+                'inventory_valuation' => 0.0,
+                'accounts_receivable' => 0.0,
+                'accounts_payable' => 0.0,
+                'dso_days' => 0,
+            ],
+            'monthly_trends' => [],
+            'zatca_compliance' => [
+                'cleared' => 0,
+                'reported' => 0,
+                'pending' => 0,
+                'rejected' => 0,
+                'total_invoices' => 0,
+                'compliance_rate' => 100.0,
+            ],
+            'commercial_pipeline' => [
+                'confirmed_orders_count' => 0,
+                'delivering_orders_count' => 0,
+                'unbilled_orders_value' => 0.0,
+                'fully_billed_orders_count' => 0,
+            ],
+            'top_customers' => [],
+        ];
 
         if ($companyId) {
             $stats['totalRevenue'] = (float) ServiceInvoice::where('company_id', $companyId)
@@ -95,6 +127,8 @@ class DashboardController extends Controller
                     'date' => $bill->date ? $bill->date->format('Y-m-d') : '',
                 ])
                 ->all();
+
+            $biMetrics = $biDashboardService->getExecutiveBiMetrics($companyId);
         }
 
         if ($tenantId) {
@@ -105,6 +139,7 @@ class DashboardController extends Controller
 
         return Inertia::render('dashboard', [
             'stats' => $stats,
+            'biMetrics' => $biMetrics,
             'recentInvoices' => $recentInvoices,
             'recentBills' => $recentBills,
         ]);
