@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, ShoppingBag, Truck, CheckCircle2, Clock, FolderKanban, FileText, Plus, Printer } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShoppingBag, Truck, CheckCircle2, Clock, FolderKanban, FileText, Plus, Printer, PackageCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 
@@ -41,12 +41,21 @@ interface Project {
     status: string;
 }
 
+interface DeliveryNote {
+    id: string;
+    delivery_number: string;
+    date: string;
+    status: string;
+    warehouse?: { name: string; code: string };
+}
+
 interface SalesOrder {
     id: string;
     order_number: string;
     customer: Party;
     quotation?: Quotation;
     projects?: Project[];
+    delivery_notes?: DeliveryNote[];
     order_date: string;
     delivery_date?: string;
     subtotal: string;
@@ -124,6 +133,13 @@ export default function SalesOrderShow({ order }: Props) {
                             <span>{isRtl ? 'إكمال الطلب' : 'Complete Order'}</span>
                         </Button>
                     )}
+                    <Button asChild variant="outline" className="gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50">
+                        <Link href={`/inventory/delivery-notes/create?sales_order_id=${order.id}`}>
+                            <PackageCheck className="h-4 w-4" />
+                            <span>{isRtl ? 'إنشاء سند تسليم' : 'Create Delivery Note'}</span>
+                        </Link>
+                    </Button>
+
                     <Button asChild className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
                         <Link href="/projects/create">
                             <FolderKanban className="h-4 w-4" />
@@ -237,6 +253,33 @@ export default function SalesOrderShow({ order }: Props) {
                                                 <span className="text-sm font-medium">{prj.name}</span>
                                             </div>
                                             <span className="text-xs capitalize font-medium text-neutral-500">{prj.status}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {order.delivery_notes && order.delivery_notes.length > 0 && (
+                            <div className="space-y-3 pt-2">
+                                <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                                    <PackageCheck className="h-4 w-4 text-indigo-600" />
+                                    <span>{isRtl ? 'سندات التسليم المرتبطة بأمر البيع' : 'Linked Delivery Notes'}</span>
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {order.delivery_notes.map((dn) => (
+                                        <Link
+                                            key={dn.id}
+                                            href={`/inventory/delivery-notes/${dn.id}`}
+                                            className="flex items-center justify-between p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <PackageCheck className="h-4 w-4 text-indigo-600" />
+                                                <span className="font-mono text-xs font-bold">{dn.delivery_number}</span>
+                                                {dn.warehouse && (
+                                                    <span className="text-xs text-neutral-500">[{dn.warehouse.code}]</span>
+                                                )}
+                                            </div>
+                                            <span className="text-xs capitalize font-medium text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-full">{dn.status}</span>
                                         </Link>
                                     ))}
                                 </div>

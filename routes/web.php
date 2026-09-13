@@ -1,12 +1,14 @@
 <?php
 
 use App\Modules\Accounting\Http\Controllers\AccountController;
+use App\Modules\Accounting\Http\Controllers\BankReconciliationController;
 use App\Modules\Accounting\Http\Controllers\FiscalPeriodController;
 use App\Modules\Accounting\Http\Controllers\InvoiceController;
 use App\Modules\Accounting\Http\Controllers\JournalEntryController;
 use App\Modules\Accounting\Http\Controllers\ReceiptController;
 use App\Modules\Accounting\Http\Controllers\ReportController;
 use App\Modules\Accounting\Http\Controllers\StatementController;
+use App\Modules\Accounting\Http\Controllers\VatReturnController;
 use App\Modules\Assets\Http\Controllers\DepreciationController;
 use App\Modules\Assets\Http\Controllers\FixedAssetController;
 use App\Modules\Contracting\Http\Controllers\ContractingClaimController;
@@ -15,6 +17,7 @@ use App\Modules\CRM\Http\Controllers\LeadController;
 use App\Modules\HR\Http\Controllers\AttendanceController;
 use App\Modules\HR\Http\Controllers\DepartmentController;
 use App\Modules\HR\Http\Controllers\EmployeeController;
+use App\Modules\Inventory\Http\Controllers\DeliveryNoteController;
 use App\Modules\Inventory\Http\Controllers\GoodsReceiptController;
 use App\Modules\Inventory\Http\Controllers\InventoryReportController;
 use App\Modules\Inventory\Http\Controllers\ProductController;
@@ -62,6 +65,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Accounting & Finance
     Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index');
+
+    // Bank Reconciliation & Statement Matching
+    Route::get('/accounting/bank-reconciliation', [BankReconciliationController::class, 'index'])->name('accounting.bank-reconciliation.index');
+    Route::get('/accounting/bank-reconciliation/create', [BankReconciliationController::class, 'create'])->name('accounting.bank-reconciliation.create');
+    Route::post('/accounting/bank-reconciliation', [BankReconciliationController::class, 'store'])->name('accounting.bank-reconciliation.store');
+    Route::get('/accounting/bank-reconciliation/{bankReconciliation}', [BankReconciliationController::class, 'show'])->name('accounting.bank-reconciliation.show');
+    Route::get('/accounting/bank-reconciliation/{bankReconciliation}/print', [BankReconciliationController::class, 'print'])->name('accounting.bank-reconciliation.print');
+    Route::post('/accounting/bank-reconciliation/{bankReconciliation}/auto-match', [BankReconciliationController::class, 'autoMatch'])->name('accounting.bank-reconciliation.auto-match');
+    Route::post('/accounting/bank-reconciliation/{bankReconciliation}/match', [BankReconciliationController::class, 'match'])->name('accounting.bank-reconciliation.match');
+    Route::post('/accounting/bank-reconciliation/{bankReconciliation}/unmatch', [BankReconciliationController::class, 'unmatch'])->name('accounting.bank-reconciliation.unmatch');
+    Route::post('/accounting/bank-reconciliation/{bankReconciliation}/import-lines', [BankReconciliationController::class, 'importLines'])->name('accounting.bank-reconciliation.import-lines');
+    Route::post('/accounting/bank-reconciliation/{bankReconciliation}/finalize', [BankReconciliationController::class, 'finalize'])->name('accounting.bank-reconciliation.finalize');
+
+    // ZATCA VAT Return Management
+    Route::get('/accounting/vat-returns', [VatReturnController::class, 'index'])->name('accounting.vat-returns.index');
+    Route::get('/accounting/vat-returns/create', [VatReturnController::class, 'create'])->name('accounting.vat-returns.create');
+    Route::post('/accounting/vat-returns', [VatReturnController::class, 'store'])->name('accounting.vat-returns.store');
+    Route::get('/accounting/vat-returns/{vatReturn}', [VatReturnController::class, 'show'])->name('accounting.vat-returns.show');
+    Route::post('/accounting/vat-returns/{vatReturn}/file', [VatReturnController::class, 'file'])->name('accounting.vat-returns.file');
+    Route::get('/accounting/vat-returns/{vatReturn}/print', [VatReturnController::class, 'print'])->name('accounting.vat-returns.print');
+    Route::get('/accounting/vat-returns/{vatReturn}/export', [VatReturnController::class, 'export'])->name('accounting.vat-returns.export');
 
     // Service Invoices
     Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
@@ -147,6 +171,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/inventory/receipts', [GoodsReceiptController::class, 'store'])->name('inventory.receipts.store');
     Route::get('/inventory/receipts/{goodsReceipt}', [GoodsReceiptController::class, 'show'])->name('inventory.receipts.show');
     Route::get('/inventory/receipts/{goodsReceipt}/print', [GoodsReceiptController::class, 'print'])->name('inventory.receipts.print');
+
+    // Goods Delivery Notes (Outbound Dispatch)
+    Route::get('/inventory/delivery-notes', [DeliveryNoteController::class, 'index'])->name('inventory.delivery-notes.index');
+    Route::get('/inventory/delivery-notes/create', [DeliveryNoteController::class, 'create'])->name('inventory.delivery-notes.create');
+    Route::post('/inventory/delivery-notes', [DeliveryNoteController::class, 'store'])->name('inventory.delivery-notes.store');
+    Route::get('/inventory/delivery-notes/{deliveryNote}', [DeliveryNoteController::class, 'show'])->name('inventory.delivery-notes.show');
+    Route::get('/inventory/delivery-notes/{deliveryNote}/print', [DeliveryNoteController::class, 'print'])->name('inventory.delivery-notes.print');
 
     Route::get('/inventory/movements', [StockMovementController::class, 'index'])->name('inventory.movements.index');
 

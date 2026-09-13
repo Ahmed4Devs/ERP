@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sales\Models;
 
+use App\Modules\Inventory\Models\DeliveryNote;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Projects\Models\Project;
 use App\Shared\Traits\BelongsToCompany;
@@ -62,5 +63,10 @@ class SalesOrder extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class, 'sales_order_id');
+    }
+
+    public function deliveryNotes(): HasMany
+    {
+        return $this->hasMany(DeliveryNote::class, 'sales_order_id');
     }
 }

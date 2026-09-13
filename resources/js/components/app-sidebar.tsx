@@ -21,6 +21,7 @@ import {
     LayoutGrid,
     LifeBuoy,
     Lock,
+    PackageCheck,
     Receipt,
     ReceiptText,
     ShoppingBag,
@@ -145,6 +146,11 @@ export function AppSidebar() {
                     icon: Truck,
                 },
                 {
+                    title: t('nav.deliveryNotes', 'سندات تسليم البضاعة'),
+                    href: '/inventory/delivery-notes',
+                    icon: PackageCheck,
+                },
+                {
                     title: t('nav.stockMovements', 'حركات المخزون'),
                     href: '/inventory/movements',
                     icon: ArrowDownUp,
@@ -203,6 +209,16 @@ export function AppSidebar() {
                     title: t('nav.transfers', 'تحويلات الخزينة'),
                     href: '/treasury/transfers',
                     icon: ArrowLeftRight,
+                },
+                {
+                    title: t('nav.bankReconciliation', 'التسوية والمطابقة البنكية'),
+                    href: '/accounting/bank-reconciliation',
+                    icon: FileCheck2,
+                },
+                {
+                    title: t('nav.vatReturns', 'إقرار ضريبة القيمة المضافة'),
+                    href: '/accounting/vat-returns',
+                    icon: Percent,
                 },
                 {
                     title: t('nav.trialBalance', 'ميزان المراجعة'),

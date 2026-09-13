@@ -43,7 +43,7 @@ class SalesOrderController extends Controller
 
     public function show(SalesOrder $order): Response
     {
-        $order->load(['customer', 'quotation', 'lines.product', 'projects']);
+        $order->load(['customer', 'quotation', 'lines.product', 'projects', 'deliveryNotes.warehouse']);
 
         return Inertia::render('Sales/Orders/Show', [
             'order' => $order,
