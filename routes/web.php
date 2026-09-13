@@ -16,6 +16,7 @@ use App\Modules\Assets\Http\Controllers\FixedAssetDisposalController;
 use App\Modules\Contracting\Http\Controllers\ContractingClaimController;
 use App\Modules\Contracts\Http\Controllers\ContractController;
 use App\Modules\CRM\Http\Controllers\LeadController;
+use App\Modules\Governance\Http\Controllers\ApprovalWorkflowController;
 use App\Modules\HR\Http\Controllers\AttendanceController;
 use App\Modules\HR\Http\Controllers\DepartmentController;
 use App\Modules\HR\Http\Controllers\EmployeeController;
@@ -394,6 +395,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/data-import/template/{type}', [DataImportController::class, 'downloadTemplate'])->name('data-import.template');
     Route::get('/data-import/export/{type}', [DataImportController::class, 'export'])->name('data-import.export');
     Route::post('/data-import/upload', [DataImportController::class, 'import'])->name('data-import.upload');
+
+    // Financial Governance & Multi-Level Approvals (DOA)
+    Route::get('/governance/approvals', [ApprovalWorkflowController::class, 'index'])->name('governance.approvals.index');
+    Route::get('/governance/approvals/{id}', [ApprovalWorkflowController::class, 'show'])->name('governance.approvals.show');
+    Route::post('/governance/approvals/{id}/approve', [ApprovalWorkflowController::class, 'approve'])->name('governance.approvals.approve');
+    Route::post('/governance/approvals/{id}/reject', [ApprovalWorkflowController::class, 'reject'])->name('governance.approvals.reject');
+    Route::get('/governance/rules', [ApprovalWorkflowController::class, 'rules'])->name('governance.rules.index');
+    Route::post('/governance/rules', [ApprovalWorkflowController::class, 'storeRule'])->name('governance.rules.store');
 });
 
 require __DIR__.'/settings.php';

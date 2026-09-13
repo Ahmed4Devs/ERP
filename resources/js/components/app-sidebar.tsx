@@ -390,6 +390,21 @@ export function AppSidebar() {
             ],
         },
         {
+            title: t('nav.governance', 'الحوكمة والاعتمادات المالية'),
+            items: [
+                {
+                    title: t('nav.approvals', 'مركز الموافقات والطلبات'),
+                    href: '/governance/approvals',
+                    icon: FileCheck2,
+                },
+                {
+                    title: t('nav.doaRules', 'مصفوفة الصلاحيات (DOA)'),
+                    href: '/governance/rules',
+                    icon: Scale,
+                },
+            ],
+        },
+        {
             title: t('nav.platformSettings', 'إدارة وتكامل البيانات'),
             items: [
                 {
