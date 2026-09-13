@@ -2,6 +2,8 @@
 
 use App\Modules\Accounting\Http\Controllers\AccountController;
 use App\Modules\Accounting\Http\Controllers\BankReconciliationController;
+use App\Modules\Accounting\Http\Controllers\BudgetController;
+use App\Modules\Accounting\Http\Controllers\CostCenterController;
 use App\Modules\Accounting\Http\Controllers\FiscalPeriodController;
 use App\Modules\Accounting\Http\Controllers\InvoiceController;
 use App\Modules\Accounting\Http\Controllers\JournalEntryController;
@@ -147,6 +149,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/accounting/petty-cash/settlements/{settlement}', [PettyCashController::class, 'showSettlement'])->name('accounting.petty-cash.settlements.show');
     Route::post('/accounting/petty-cash/settlements/{settlement}/post', [PettyCashController::class, 'postSettlement'])->name('accounting.petty-cash.settlements.post');
     Route::get('/accounting/petty-cash/settlements/{settlement}/print', [PettyCashController::class, 'printSettlement'])->name('accounting.petty-cash.settlements.print');
+
+    // Cost Centers & Budgeting
+    Route::get('/accounting/cost-centers', [CostCenterController::class, 'index'])->name('accounting.cost-centers.index');
+    Route::post('/accounting/cost-centers', [CostCenterController::class, 'store'])->name('accounting.cost-centers.store');
+    Route::put('/accounting/cost-centers/{costCenter}', [CostCenterController::class, 'update'])->name('accounting.cost-centers.update');
+    Route::delete('/accounting/cost-centers/{costCenter}', [CostCenterController::class, 'destroy'])->name('accounting.cost-centers.destroy');
+
+    Route::get('/accounting/budgets', [BudgetController::class, 'index'])->name('accounting.budgets.index');
+    Route::get('/accounting/budgets/create', [BudgetController::class, 'create'])->name('accounting.budgets.create');
+    Route::post('/accounting/budgets', [BudgetController::class, 'store'])->name('accounting.budgets.store');
+    Route::get('/accounting/budgets/{budget}', [BudgetController::class, 'show'])->name('accounting.budgets.show');
+    Route::post('/accounting/budgets/{budget}/approve', [BudgetController::class, 'approve'])->name('accounting.budgets.approve');
 
     // Financial Reports
     Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');

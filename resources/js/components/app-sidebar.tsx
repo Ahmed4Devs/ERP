@@ -253,6 +253,16 @@ export function AppSidebar() {
                     icon: HandCoins,
                 },
                 {
+                    title: t('nav.costCenters', 'مراكز التكلفة'),
+                    href: '/accounting/cost-centers',
+                    icon: Layers,
+                },
+                {
+                    title: t('nav.budgets', 'الموازنات التقديرية والانحرافات'),
+                    href: '/accounting/budgets',
+                    icon: Scale,
+                },
+                {
                     title: t('nav.trialBalance', 'ميزان المراجعة'),
                     href: '/reports/trial-balance',
                     icon: BarChart3,

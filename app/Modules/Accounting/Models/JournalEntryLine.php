@@ -21,6 +21,7 @@ class JournalEntryLine extends Model
         'company_id',
         'journal_entry_id',
         'account_id',
+        'cost_center_id',
         'debit',
         'credit',
         'description',
@@ -54,6 +55,11 @@ class JournalEntryLine extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'account_id');
+    }
+
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class, 'cost_center_id');
     }
 
     public function company(): BelongsTo
