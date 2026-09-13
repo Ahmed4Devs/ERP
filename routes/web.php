@@ -45,6 +45,8 @@ use App\Modules\Manufacturing\Http\Controllers\BomController;
 use App\Modules\Manufacturing\Http\Controllers\ProductionOrderController;
 use App\Modules\MasterData\Http\Controllers\PartyController;
 use App\Modules\Payroll\Http\Controllers\PayrollRunController;
+use App\Modules\Platform\Http\Controllers\AlertController;
+use App\Modules\Platform\Http\Controllers\AttachmentController;
 use App\Modules\Platform\Http\Controllers\ContextController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\DataImportController;
@@ -486,6 +488,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/governance/approvals/{id}/reject', [ApprovalWorkflowController::class, 'reject'])->name('governance.approvals.reject');
     Route::get('/governance/rules', [ApprovalWorkflowController::class, 'rules'])->name('governance.rules.index');
     Route::post('/governance/rules', [ApprovalWorkflowController::class, 'storeRule'])->name('governance.rules.store');
+
+    // Centralized Document Management System (DMS / Attachments)
+    Route::get('/attachments', [AttachmentController::class, 'listFor'])->name('attachments.list');
+    Route::post('/attachments', [AttachmentController::class, 'upload'])->name('attachments.upload');
+    Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
+    Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
+
+    // System Alerts & Notification Center
+    Route::get('/alerts', [AlertController::class, 'index'])->name('alerts.index');
+    Route::get('/alerts/unread-count', [AlertController::class, 'unreadCount'])->name('alerts.unread-count');
+    Route::post('/alerts/{alert}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
+    Route::post('/alerts/read-all', [AlertController::class, 'markAllAsRead'])->name('alerts.read-all');
+    Route::post('/alerts/{alert}/dismiss', [AlertController::class, 'dismiss'])->name('alerts.dismiss');
 });
 
 require __DIR__.'/settings.php';

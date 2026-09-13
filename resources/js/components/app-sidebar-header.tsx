@@ -1,5 +1,6 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { AlertBell } from '@/components/erp/alert-bell';
 import { ContextSwitcher } from '@/components/erp/context-switcher';
 import { LocaleSwitcher } from '@/components/erp/locale-switcher';
 import { ThemeDropdown } from '@/components/theme-dropdown';
@@ -18,6 +19,7 @@ export function AppSidebarHeader({
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <AlertBell />
                 <ContextSwitcher />
                 <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />
                 <ThemeDropdown />
