@@ -4,7 +4,9 @@ use App\Modules\Accounting\Http\Controllers\AccountController;
 use App\Modules\Accounting\Http\Controllers\BankReconciliationController;
 use App\Modules\Accounting\Http\Controllers\BudgetController;
 use App\Modules\Accounting\Http\Controllers\CostCenterController;
+use App\Modules\Accounting\Http\Controllers\CurrencyRateController;
 use App\Modules\Accounting\Http\Controllers\FiscalPeriodController;
+use App\Modules\Accounting\Http\Controllers\FxRevaluationController;
 use App\Modules\Accounting\Http\Controllers\InvoiceController;
 use App\Modules\Accounting\Http\Controllers\JournalEntryController;
 use App\Modules\Accounting\Http\Controllers\PettyCashController;
@@ -190,6 +192,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/accounting/budgets', [BudgetController::class, 'store'])->name('accounting.budgets.store');
     Route::get('/accounting/budgets/{budget}', [BudgetController::class, 'show'])->name('accounting.budgets.show');
     Route::post('/accounting/budgets/{budget}/approve', [BudgetController::class, 'approve'])->name('accounting.budgets.approve');
+
+    // Multi-Currency Exchange Rates & Foreign Exchange Revaluation (Phase 4)
+    Route::get('/accounting/fx-rates', [CurrencyRateController::class, 'index'])->name('accounting.fx-rates.index');
+    Route::post('/accounting/fx-rates', [CurrencyRateController::class, 'store'])->name('accounting.fx-rates.store');
+
+    Route::get('/accounting/fx-revaluations', [FxRevaluationController::class, 'index'])->name('accounting.fx-revaluations.index');
+    Route::get('/accounting/fx-revaluations/create', [FxRevaluationController::class, 'create'])->name('accounting.fx-revaluations.create');
+    Route::post('/accounting/fx-revaluations', [FxRevaluationController::class, 'store'])->name('accounting.fx-revaluations.store');
+    Route::get('/accounting/fx-revaluations/{fxRevaluation}', [FxRevaluationController::class, 'show'])->name('accounting.fx-revaluations.show');
+    Route::post('/accounting/fx-revaluations/{fxRevaluation}/reverse', [FxRevaluationController::class, 'reverse'])->name('accounting.fx-revaluations.reverse');
 
     // Financial Reports
     Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');

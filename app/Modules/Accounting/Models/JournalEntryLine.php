@@ -25,11 +25,16 @@ class JournalEntryLine extends Model
         'debit',
         'credit',
         'description',
+        'currency',
+        'foreign_amount',
+        'exchange_rate',
     ];
 
     protected $casts = [
         'debit' => 'decimal:6',
         'credit' => 'decimal:6',
+        'foreign_amount' => 'decimal:6',
+        'exchange_rate' => 'decimal:6',
     ];
 
     protected static function booted(): void

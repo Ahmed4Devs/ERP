@@ -283,6 +283,16 @@ export function AppSidebar() {
                     icon: Scale,
                 },
                 {
+                    title: t('nav.fxRates', 'أسعار صرف العملات الأجنبية'),
+                    href: '/accounting/fx-rates',
+                    icon: ArrowDownUp,
+                },
+                {
+                    title: t('nav.fxRevaluations', 'إعادة تقييم العملات وفروقات الصرف'),
+                    href: '/accounting/fx-revaluations',
+                    icon: Banknote,
+                },
+                {
                     title: t('nav.trialBalance', 'ميزان المراجعة'),
                     href: '/reports/trial-balance',
                     icon: BarChart3,
