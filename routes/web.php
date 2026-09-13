@@ -12,6 +12,7 @@ use App\Modules\Accounting\Http\Controllers\StatementController;
 use App\Modules\Accounting\Http\Controllers\VatReturnController;
 use App\Modules\Assets\Http\Controllers\DepreciationController;
 use App\Modules\Assets\Http\Controllers\FixedAssetController;
+use App\Modules\Assets\Http\Controllers\FixedAssetDisposalController;
 use App\Modules\Contracting\Http\Controllers\ContractingClaimController;
 use App\Modules\Contracts\Http\Controllers\ContractController;
 use App\Modules\CRM\Http\Controllers\LeadController;
@@ -265,6 +266,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/assets/depreciation', [DepreciationController::class, 'index'])->name('assets.depreciation.index');
     Route::post('/assets/depreciation', [DepreciationController::class, 'store'])->name('assets.depreciation.store');
+
+    // Fixed Asset Disposal & Scrap
+    Route::get('/assets/disposals', [FixedAssetDisposalController::class, 'index'])->name('assets.disposals.index');
+    Route::get('/assets/disposals/create', [FixedAssetDisposalController::class, 'create'])->name('assets.disposals.create');
+    Route::post('/assets/disposals', [FixedAssetDisposalController::class, 'store'])->name('assets.disposals.store');
+    Route::get('/assets/disposals/{disposal}', [FixedAssetDisposalController::class, 'show'])->name('assets.disposals.show');
+    Route::post('/assets/disposals/{disposal}/post', [FixedAssetDisposalController::class, 'post'])->name('assets.disposals.post');
+    Route::get('/assets/disposals/{disposal}/print', [FixedAssetDisposalController::class, 'print'])->name('assets.disposals.print');
 
     // Fiscal Periods & Close
     Route::get('/accounting/periods', [FiscalPeriodController::class, 'index'])->name('accounting.periods.index');

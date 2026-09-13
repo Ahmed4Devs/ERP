@@ -43,6 +43,7 @@ import {
     HandCoins,
     Award,
     RotateCcw,
+    Archive,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -318,6 +319,11 @@ export function AppSidebar() {
                     title: t('nav.depreciation', 'إهلاك الأصول'),
                     href: '/assets/depreciation',
                     icon: TrendingDown,
+                },
+                {
+                    title: t('nav.assetDisposals', 'استبعاد وتخريد الأصول'),
+                    href: '/assets/disposals',
+                    icon: Archive,
                 },
                 {
                     title: t('nav.projects', 'المشاريع وبطاقات الوقت'),

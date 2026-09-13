@@ -80,6 +80,11 @@ class FixedAsset extends Model
         return $this->hasMany(AssetDepreciationEntry::class, 'fixed_asset_id');
     }
 
+    public function disposals(): HasMany
+    {
+        return $this->hasMany(FixedAssetDisposal::class, 'fixed_asset_id');
+    }
+
     /**
      * Calculate monthly straight-line depreciation amount.
      * Monthly = (Cost - Salvage) / Useful_Life_Months
