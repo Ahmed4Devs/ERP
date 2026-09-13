@@ -287,3 +287,5 @@ export function AttachmentManager({
         </div>
     );
 }
+
+export default AttachmentManager;

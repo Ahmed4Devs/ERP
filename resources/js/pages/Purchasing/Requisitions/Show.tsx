@@ -393,7 +393,6 @@ export default function ShowPurchaseRequisition({ requisition, vendors }: Props)
                     <AttachmentManager
                         attachableType="purchase_requisition"
                         attachableId={requisition.id}
-                        initialAttachments={requisition.attachments || []}
                     />
                 </div>
 

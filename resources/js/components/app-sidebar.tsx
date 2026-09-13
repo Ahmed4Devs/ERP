@@ -473,6 +473,11 @@ export function AppSidebar() {
                     href: '/governance/rules',
                     icon: Scale,
                 },
+                {
+                    title: t('nav.auditLogs', 'سجل الرقابة والتدقيق (Audit Trail)'),
+                    href: '/audit-logs',
+                    icon: ShieldCheck,
+                },
             ],
         },
         {

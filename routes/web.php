@@ -47,6 +47,7 @@ use App\Modules\MasterData\Http\Controllers\PartyController;
 use App\Modules\Payroll\Http\Controllers\PayrollRunController;
 use App\Modules\Platform\Http\Controllers\AlertController;
 use App\Modules\Platform\Http\Controllers\AttachmentController;
+use App\Modules\Platform\Http\Controllers\AuditLogController;
 use App\Modules\Platform\Http\Controllers\ContextController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\DataImportController;
@@ -500,6 +501,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/governance/approvals/{id}/reject', [ApprovalWorkflowController::class, 'reject'])->name('governance.approvals.reject');
     Route::get('/governance/rules', [ApprovalWorkflowController::class, 'rules'])->name('governance.rules.index');
     Route::post('/governance/rules', [ApprovalWorkflowController::class, 'storeRule'])->name('governance.rules.store');
+
+    // Enterprise Audit Trail & Security Center
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->name('audit-logs.export');
 
     // Centralized Document Management System (DMS / Attachments)
     Route::get('/attachments', [AttachmentController::class, 'listFor'])->name('attachments.list');

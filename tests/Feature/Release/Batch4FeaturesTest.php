@@ -12,6 +12,7 @@ use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\WpsFileGeneratorService;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Platform\Services\AuditLogger;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Models\PurchaseRequisition;
 use App\Modules\Purchasing\Services\PurchaseRequisitionService;
@@ -207,4 +208,65 @@ test('purchase requisitions full lifecycle and conversion to purchase orders wor
 
     expect(fn () => $service->reject($requisition, 'Too late'))
         ->toThrow(InvalidArgumentException::class);
+});
+
+test('audit logs center tracks events, filters records, and exports csv correctly', function () {
+    $this->actingAs($this->user);
+
+    // 1. Generate audit log events via AuditLogger
+    $log1 = AuditLogger::log(
+        action: 'purchase_requisition.approved',
+        entityType: 'App\Modules\Purchasing\Models\PurchaseRequisition',
+        entityId: 'PR-TEST-UUID-01',
+        oldValues: ['status' => 'submitted'],
+        newValues: ['status' => 'approved', 'approved_by' => $this->user->id],
+        companyId: $this->company->id,
+        tenantId: $this->tenant->id
+    );
+
+    $log2 = AuditLogger::log(
+        action: 'security.permission_changed',
+        entityType: 'App\Models\User',
+        entityId: (string) $this->user->id,
+        oldValues: ['role' => 'accountant'],
+        newValues: ['role' => 'financial_manager'],
+        companyId: $this->company->id,
+        tenantId: $this->tenant->id
+    );
+
+    expect($log1)->not->toBeNull()
+        ->and($log1->action)->toBe('purchase_requisition.approved')
+        ->and($log1->old_values['status'])->toBe('submitted')
+        ->and($log1->new_values['status'])->toBe('approved');
+
+    // 2. Query index page
+    $response = $this->actingAs($this->user)->get(route('audit-logs.index'));
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('Platform/AuditLogs/Index')
+        ->has('logs.data')
+        ->has('metrics')
+        ->where('metrics.active_users_count', fn ($val) => $val >= 1)
+    );
+
+    // 3. Filter by specific action
+    $filterResponse = $this->actingAs($this->user)->get(route('audit-logs.index', ['action' => 'security.permission_changed']));
+    $filterResponse->assertOk();
+    $filterResponse->assertInertia(fn ($page) => $page
+        ->where('logs.data.0.action', 'security.permission_changed')
+    );
+
+    // 4. Test Export CSV endpoint
+    $exportResponse = $this->actingAs($this->user)->get(route('audit-logs.export', ['action' => 'purchase_requisition.approved']));
+    $exportResponse->assertOk();
+    expect($exportResponse->headers->get('content-type'))->toContain('text/csv');
+
+    // Stream content check
+    ob_start();
+    $exportResponse->sendContent();
+    $csvContent = ob_get_clean();
+
+    expect($csvContent)->toContain('Timestamp,User,Action')
+        ->toContain('purchase_requisition.approved')
+        ->toContain('PR-TEST-UUID-01');
 });
