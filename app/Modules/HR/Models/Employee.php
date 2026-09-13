@@ -31,6 +31,8 @@ class Employee extends Model
         'email',
         'phone',
         'national_id',
+        'nationality',
+        'gosi_number',
         'hire_date',
         'status',
         'basic_salary',

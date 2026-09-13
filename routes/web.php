@@ -44,6 +44,7 @@ use App\Modules\Localization\Http\Controllers\ZatcaIntegrationController;
 use App\Modules\Manufacturing\Http\Controllers\BomController;
 use App\Modules\Manufacturing\Http\Controllers\ProductionOrderController;
 use App\Modules\MasterData\Http\Controllers\PartyController;
+use App\Modules\Payroll\Http\Controllers\GosiReportController;
 use App\Modules\Payroll\Http\Controllers\PayrollRunController;
 use App\Modules\Platform\Http\Controllers\AlertController;
 use App\Modules\Platform\Http\Controllers\AttachmentController;
@@ -365,6 +366,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payroll/payslips/{payslip}/print', [PayrollRunController::class, 'printPayslip'])->name('payroll.payslips.print');
     Route::get('/payroll/runs/{payrollRun}/wps/sif', [PayrollRunController::class, 'downloadWpsSif'])->name('payroll.runs.wps-sif');
     Route::get('/payroll/runs/{payrollRun}/wps/csv', [PayrollRunController::class, 'downloadWpsCsv'])->name('payroll.runs.wps-csv');
+    Route::get('/payroll/gosi', [GosiReportController::class, 'index'])->name('payroll.gosi.index');
+    Route::get('/payroll/gosi/export', [GosiReportController::class, 'export'])->name('payroll.gosi.export');
+    Route::post('/payroll/gosi/{payrollRun}/post-employer', [GosiReportController::class, 'postEmployerContribution'])->name('payroll.gosi.post-employer');
 
     // Fixed Assets & Depreciation
     Route::get('/assets/register', [FixedAssetController::class, 'index'])->name('assets.register.index');

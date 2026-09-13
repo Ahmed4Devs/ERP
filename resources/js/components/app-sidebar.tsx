@@ -388,6 +388,11 @@ export function AppSidebar() {
                     href: '/payroll/runs',
                     icon: BadgeDollarSign,
                 },
+                {
+                    title: t('nav.gosi', 'التأمينات الاجتماعية (GOSI)'),
+                    href: '/payroll/gosi',
+                    icon: ShieldCheck,
+                },
             ],
         },
         {

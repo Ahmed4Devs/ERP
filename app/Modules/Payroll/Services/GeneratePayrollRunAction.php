@@ -88,8 +88,11 @@ class GeneratePayrollRunAction
 
                 $gross = bcadd($basic, $allowancesSubtotal, 6);
 
-                // Synthetic Social Insurance / GOSI test rate: 10% on basic salary
-                $socialInsurance = bcmul($basic, '0.100000', 6);
+                // Calculate GOSI (Social Insurance) in compliance with Saudi law
+                $gosiCalc = app(GosiCalculatorService::class)->calculateForEmployee($emp);
+                $socialInsurance = $gosiCalc['employee_deduction'];
+                $employerGosi = $gosiCalc['employer_contribution'];
+                $contributoryWage = $gosiCalc['contributory_wage'];
 
                 // Auto-deduct active employee loan installments for this period
                 $loanInstallments = EmployeeLoanInstallment::where('employee_id', $emp->id)
@@ -119,7 +122,9 @@ class GeneratePayrollRunAction
                     'other_allowances' => $other,
                     'overtime_amount' => $overtimeAmount,
                     'gross_salary' => $gross,
+                    'gosi_contributory_wage' => $contributoryWage,
                     'social_insurance_deduction' => $socialInsurance,
+                    'employer_gosi_contribution' => $employerGosi,
                     'other_deductions' => $otherDeductions,
                     'total_deductions' => $deductionsSubtotal,
                     'net_salary' => $net,
