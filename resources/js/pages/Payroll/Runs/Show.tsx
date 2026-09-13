@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, BadgeDollarSign, BookOpen, CheckCircle, CreditCard, DollarSign, Printer, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeDollarSign, BookOpen, CheckCircle, CreditCard, DollarSign, Download, Printer, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 
@@ -159,6 +159,19 @@ export default function ShowPayrollRun({ payrollRun, bankAccounts }: Props) {
                             <span>{isPosting ? t('common.loading', 'Posting...') : t('payroll.postToGl', 'Post to General Ledger')}</span>
                         </Button>
                     )}
+
+                    <a href={`/payroll/runs/${payrollRun.id}/wps/sif`} target="_blank" rel="noreferrer">
+                        <Button variant="outline" size="sm" className="gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800">
+                            <Download className="h-3.5 w-3.5" />
+                            <span>{t('payroll.wpsSif', 'ملف حماية الأجور (SIF)')}</span>
+                        </Button>
+                    </a>
+                    <a href={`/payroll/runs/${payrollRun.id}/wps/csv`} target="_blank" rel="noreferrer">
+                        <Button variant="outline" size="sm" className="gap-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-800">
+                            <Download className="h-3.5 w-3.5" />
+                            <span>{t('payroll.mudadCsv', 'ملف مَدَد (CSV)')}</span>
+                        </Button>
+                    </a>
 
                     {payrollRun.status === 'posted' && (
                         <Button

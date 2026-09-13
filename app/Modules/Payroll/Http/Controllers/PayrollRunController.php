@@ -11,12 +11,14 @@ use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\DisbursePayrollAction;
 use App\Modules\Payroll\Services\GeneratePayrollRunAction;
 use App\Modules\Payroll\Services\PostPayrollRunAction;
+use App\Modules\Payroll\Services\WpsFileGeneratorService;
 use App\Shared\Context\CurrentCompany;
 use App\Shared\Context\CurrentTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PayrollRunController extends Controller
 {
@@ -142,5 +144,25 @@ class PayrollRunController extends Controller
             ],
             'qrCodeDataUri' => $qrCodeDataUri,
         ]);
+    }
+
+    public function downloadWpsSif(PayrollRun $payrollRun, WpsFileGeneratorService $wpsService): StreamedResponse
+    {
+        $companyId = app(CurrentCompany::class)->id();
+        if ($payrollRun->company_id !== $companyId) {
+            abort(403);
+        }
+
+        return $wpsService->streamSif($payrollRun);
+    }
+
+    public function downloadWpsCsv(PayrollRun $payrollRun, WpsFileGeneratorService $wpsService): StreamedResponse
+    {
+        $companyId = app(CurrentCompany::class)->id();
+        if ($payrollRun->company_id !== $companyId) {
+            abort(403);
+        }
+
+        return $wpsService->streamMudadCsv($payrollRun);
     }
 }

@@ -352,6 +352,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/payroll/runs/{payrollRun}/post', [PayrollRunController::class, 'postRun'])->name('payroll.runs.post');
     Route::post('/payroll/runs/{payrollRun}/disburse', [PayrollRunController::class, 'disburse'])->name('payroll.runs.disburse');
     Route::get('/payroll/payslips/{payslip}/print', [PayrollRunController::class, 'printPayslip'])->name('payroll.payslips.print');
+    Route::get('/payroll/runs/{payrollRun}/wps/sif', [PayrollRunController::class, 'downloadWpsSif'])->name('payroll.runs.wps-sif');
+    Route::get('/payroll/runs/{payrollRun}/wps/csv', [PayrollRunController::class, 'downloadWpsCsv'])->name('payroll.runs.wps-csv');
 
     // Fixed Assets & Depreciation
     Route::get('/assets/register', [FixedAssetController::class, 'index'])->name('assets.register.index');
