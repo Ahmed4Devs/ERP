@@ -418,6 +418,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/sales/orders/{order}', [SalesOrderController::class, 'show'])->name('sales.orders.show');
     Route::get('/sales/orders/{order}/print', [SalesOrderController::class, 'print'])->name('sales.orders.print');
     Route::put('/sales/orders/{order}/status', [SalesOrderController::class, 'updateStatus'])->name('sales.orders.status');
+    Route::post('/sales/orders/{order}/convert-to-invoice', [SalesOrderController::class, 'convertToInvoice'])->name('sales.orders.convert-to-invoice');
 
     // Sales Credit Notes (Customer Returns & Output Tax Deduction)
     Route::get('/sales/credit-notes', [CreditNoteController::class, 'index'])->name('sales.credit-notes.index');

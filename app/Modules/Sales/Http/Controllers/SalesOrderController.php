@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\Localization\Services\QrCodeSvgService;
 use App\Modules\Localization\Services\TafqeetService;
 use App\Modules\Sales\Models\SalesOrder;
+use App\Modules\Sales\Services\ConvertSalesOrderToInvoiceAction;
+use App\Modules\Sales\Services\CustomerCreditService;
 use App\Shared\Context\CurrentCompany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,13 +43,40 @@ class SalesOrderController extends Controller
         ]);
     }
 
-    public function show(SalesOrder $order): Response
+    public function show(SalesOrder $order, CustomerCreditService $creditService): Response
     {
-        $order->load(['customer', 'quotation', 'lines.product', 'projects', 'deliveryNotes.warehouse']);
+        $order->load(['customer', 'quotation', 'lines.product', 'projects', 'deliveryNotes.warehouse', 'invoices']);
+
+        $creditStatus = null;
+        if ($order->customer) {
+            $creditStatus = $creditService->checkCreditLimit($order->customer, $order->company_id, (float) $order->total_amount);
+        }
 
         return Inertia::render('Sales/Orders/Show', [
             'order' => $order,
+            'creditStatus' => $creditStatus,
         ]);
+    }
+
+    public function convertToInvoice(
+        SalesOrder $order,
+        Request $request,
+        ConvertSalesOrderToInvoiceAction $action
+    ): RedirectResponse {
+        $currentCompany = app(CurrentCompany::class);
+        if ($order->company_id !== $currentCompany->id()) {
+            abort(403);
+        }
+
+        try {
+            $ignoreCredit = $request->boolean('ignore_credit_limit');
+            $invoice = $action->execute($order, $ignoreCredit);
+
+            return redirect()->route('invoices.show', $invoice->id)
+                ->with('success', "Sales Order {$order->order_number} converted into Tax Invoice {$invoice->invoice_number} successfully.");
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     public function updateStatus(Request $request, SalesOrder $order): RedirectResponse

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Sales\Models;
 
+use App\Modules\Accounting\Models\ServiceInvoice;
 use App\Modules\Inventory\Models\DeliveryNote;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Projects\Models\Project;
@@ -68,5 +69,10 @@ class SalesOrder extends Model
     public function deliveryNotes(): HasMany
     {
         return $this->hasMany(DeliveryNote::class, 'sales_order_id');
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(ServiceInvoice::class, 'sales_order_id');
     }
 }

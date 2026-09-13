@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, ShoppingBag, Truck, CheckCircle2, Clock, FolderKanban, FileText, Plus, Printer, PackageCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShoppingBag, Truck, CheckCircle2, Clock, FolderKanban, FileText, Plus, Printer, PackageCheck, AlertTriangle, ShieldAlert, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 
@@ -49,6 +49,25 @@ interface DeliveryNote {
     warehouse?: { name: string; code: string };
 }
 
+interface Invoice {
+    id: string;
+    invoice_number: string;
+    date: string;
+    status: string;
+    total: string;
+    balance_due: string;
+}
+
+interface CreditStatus {
+    credit_limit: number;
+    current_balance: number;
+    projected_balance: number;
+    available_credit: number;
+    is_exceeded: boolean;
+    utilization_percent: number;
+    has_credit_limit: boolean;
+}
+
 interface SalesOrder {
     id: string;
     order_number: string;
@@ -56,6 +75,7 @@ interface SalesOrder {
     quotation?: Quotation;
     projects?: Project[];
     delivery_notes?: DeliveryNote[];
+    invoices?: Invoice[];
     order_date: string;
     delivery_date?: string;
     subtotal: string;
@@ -71,16 +91,37 @@ interface SalesOrder {
 
 interface Props {
     order: SalesOrder;
+    creditStatus?: CreditStatus | null;
 }
 
-export default function SalesOrderShow({ order }: Props) {
+export default function SalesOrderShow({ order, creditStatus }: Props) {
     const { t, isRtl } = useTranslation();
     const [status, setStatus] = useState(order.status);
+    const [isConverting, setIsConverting] = useState(false);
 
     const handleStatusUpdate = (newStatus: string) => {
         router.put(`/sales/orders/${order.id}/status`, { status: newStatus }, {
             onSuccess: () => setStatus(newStatus as any),
         });
+    };
+
+    const handleConvertToInvoice = (ignoreCreditLimit = false) => {
+        const confirmMsg = ignoreCreditLimit
+            ? (isRtl
+                ? 'تنبيه: سقف الائتمان تم تجاوزه للعميل! هل ترغب في اعتماد الاستثناء الإداري وإصدار الفاتورة الضريبية فوراً؟'
+                : 'Warning: Customer credit limit exceeded! Proceed with supervisor override to convert order into tax invoice?')
+            : (isRtl
+                ? 'هل أنت متأكد من رغبتك في تحويل أمر البيع إلى فاتورة ضريبية رسمية بنقرة واحدة؟'
+                : 'Are you sure you want to convert this Sales Order into an official Tax Invoice?');
+
+        if (window.confirm(confirmMsg)) {
+            setIsConverting(true);
+            router.post(`/sales/orders/${order.id}/convert-to-invoice`, {
+                ignore_credit_limit: ignoreCreditLimit,
+            }, {
+                onFinish: () => setIsConverting(false),
+            });
+        }
     };
 
     return (
@@ -103,7 +144,13 @@ export default function SalesOrderShow({ order }: Props) {
                             <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize bg-blue-50 text-blue-700 border border-blue-200">
                                 {order.status}
                             </span>
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize bg-neutral-100 text-neutral-600">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize border ${
+                                order.invoicing_status === 'fully_billed'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : order.invoicing_status === 'partially_billed'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-neutral-100 text-neutral-600 border-neutral-200'
+                            }`}>
                                 {order.invoicing_status.replace('_', ' ')}
                             </span>
                         </div>
@@ -113,7 +160,7 @@ export default function SalesOrderShow({ order }: Props) {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <Button asChild variant="outline" className="gap-2">
                         <a href={`/sales/orders/${order.id}/print`} target="_blank" rel="noopener noreferrer">
                             <Printer className="h-4 w-4" />
@@ -133,6 +180,28 @@ export default function SalesOrderShow({ order }: Props) {
                             <span>{isRtl ? 'إكمال الطلب' : 'Complete Order'}</span>
                         </Button>
                     )}
+
+                    {order.invoicing_status !== 'fully_billed' && (
+                        <Button
+                            onClick={() => handleConvertToInvoice(creditStatus?.is_exceeded ?? false)}
+                            disabled={isConverting}
+                            className={`gap-2 text-white shadow-sm ${
+                                creditStatus?.is_exceeded
+                                    ? 'bg-amber-600 hover:bg-amber-700'
+                                    : 'bg-emerald-600 hover:bg-emerald-700'
+                            }`}
+                        >
+                            <Receipt className="h-4 w-4" />
+                            <span>
+                                {isConverting
+                                    ? (isRtl ? 'جاري التحويل...' : 'Converting...')
+                                    : creditStatus?.is_exceeded
+                                    ? (isRtl ? 'تجاوز سقف الائتمان والفوترة' : 'Override Limit & Convert')
+                                    : (isRtl ? 'إصدار فاتورة ضريبية رسمية' : 'Generate Tax Invoice')}
+                            </span>
+                        </Button>
+                    )}
+
                     <Button asChild variant="outline" className="gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50">
                         <Link href={`/inventory/delivery-notes/create?sales_order_id=${order.id}`}>
                             <PackageCheck className="h-4 w-4" />
@@ -148,6 +217,61 @@ export default function SalesOrderShow({ order }: Props) {
                     </Button>
                 </div>
             </div>
+
+            {/* Credit Risk Banner */}
+            {creditStatus && creditStatus.has_credit_limit && (
+                <div className={`p-4 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm ${
+                    creditStatus.is_exceeded
+                        ? 'bg-rose-50/80 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900 text-rose-950 dark:text-rose-100'
+                        : 'bg-neutral-50 dark:bg-neutral-900/60 border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200'
+                }`}>
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-lg shrink-0 ${
+                            creditStatus.is_exceeded
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300'
+                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
+                        }`}>
+                            {creditStatus.is_exceeded ? <ShieldAlert className="h-5 w-5" /> : <Receipt className="h-5 w-5" />}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-sm">
+                                    {isRtl ? 'مؤشر الائتمان التجاري للعميل (Credit Risk)' : 'Customer Credit Risk Status'}
+                                </span>
+                                {creditStatus.is_exceeded ? (
+                                    <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-rose-200 text-rose-900 dark:bg-rose-900/80 dark:text-rose-200">
+                                        {isRtl ? 'تم تجاوز السقف المسموح!' : 'Limit Exceeded!'}
+                                    </span>
+                                ) : (
+                                    <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                        {isRtl ? 'ضمن النطاق الآمن' : 'Safe Credit Zone'}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                                {isRtl
+                                    ? `الحد الائتماني: ${creditStatus.credit_limit.toLocaleString()} ر.س | المستحق الحالي: ${creditStatus.current_balance.toLocaleString()} ر.س | الرصيد المتوقع بعد هذا الأمر: ${creditStatus.projected_balance.toLocaleString()} ر.س`
+                                    : `Credit Limit: ${creditStatus.credit_limit.toLocaleString()} SAR | Current Outstanding: ${creditStatus.current_balance.toLocaleString()} SAR | Projected: ${creditStatus.projected_balance.toLocaleString()} SAR`}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-2 md:pt-0 border-neutral-200 dark:border-neutral-800">
+                        <div className="flex flex-col text-start md:text-end">
+                            <span className="text-xs text-neutral-500">{isRtl ? 'الرصيد المتاح' : 'Available Credit'}</span>
+                            <span className="font-mono font-bold text-sm">
+                                {creditStatus.available_credit.toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
+                            </span>
+                        </div>
+                        <div className="flex flex-col text-start md:text-end">
+                            <span className="text-xs text-neutral-500">{isRtl ? 'نسبة الاستهلاك' : 'Utilization'}</span>
+                            <span className={`font-mono font-bold text-sm ${creditStatus.is_exceeded ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                {creditStatus.utilization_percent}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Document Details Card */}
             <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm space-y-6">
@@ -280,6 +404,34 @@ export default function SalesOrderShow({ order }: Props) {
                                                 )}
                                             </div>
                                             <span className="text-xs capitalize font-medium text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-full">{dn.status}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {order.invoices && order.invoices.length > 0 && (
+                            <div className="space-y-3 pt-2">
+                                <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+                                    <Receipt className="h-4 w-4 text-emerald-600" />
+                                    <span>{isRtl ? 'الفواتير الضريبية المصدرة (ZATCA)' : 'Issued Tax Invoices (ZATCA)'}</span>
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {order.invoices.map((inv) => (
+                                        <Link
+                                            key={inv.id}
+                                            href={`/invoices/${inv.id}`}
+                                            className="flex items-center justify-between p-3 rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-100/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Receipt className="h-4 w-4 text-emerald-600" />
+                                                <span className="font-mono text-xs font-bold">{inv.invoice_number}</span>
+                                                <span className="text-xs text-neutral-500">{inv.date}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono text-xs font-semibold">{Number(inv.total).toLocaleString()} SAR</span>
+                                                <span className="text-xs capitalize font-medium text-emerald-700 bg-emerald-100 dark:bg-emerald-900 px-2 py-0.5 rounded-full">{inv.status}</span>
+                                            </div>
                                         </Link>
                                     ))}
                                 </div>

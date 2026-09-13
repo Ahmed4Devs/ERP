@@ -2,14 +2,20 @@
 
 use App\Models\User;
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\ServiceInvoice;
 use App\Modules\HR\Models\Department;
 use App\Modules\HR\Models\Designation;
 use App\Modules\HR\Models\Employee;
+use App\Modules\MasterData\Models\CustomerProfile;
+use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
 use App\Modules\Organization\Models\Company;
 use App\Modules\Payroll\Services\GeneratePayrollRunAction;
 use App\Modules\Payroll\Services\GosiCalculatorService;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Sales\Models\SalesOrder;
+use App\Modules\Sales\Models\SalesOrderLine;
+use App\Modules\Sales\Services\CustomerCreditService;
 use App\Shared\Context\CurrentCompany;
 use App\Shared\Context\CurrentTenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -167,4 +173,144 @@ test('saudi gosi engine correctly calculates statutory rates caps wages and post
     // Verify GL Account 2040 and 5130 have been posted
     $gosiPayable = Account::where('company_id', $this->company->id)->where('code', '2040')->first();
     expect($gosiPayable)->not->toBeNull();
+});
+
+test('commercial sales order conversion enforces customer credit limit and generates zatca tax invoice atomically', function () {
+    // 1. Create a Commercial Customer with 50,000 SAR credit limit
+    $customer = Party::create([
+        'tenant_id' => $this->tenant->id,
+        'name' => 'Saudi Tech Horizon Co.',
+        'name_ar' => 'شركة أفق التقنية السعودية',
+        'type' => 'customer',
+        'tax_id' => '310998877600003',
+        'email' => 'sales@techhorizon.sa',
+        'phone' => '+966501112233',
+        'status' => 'active',
+    ]);
+
+    CustomerProfile::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'party_id' => $customer->id,
+        'credit_limit' => 50000.00,
+        'payment_terms_days' => 30,
+        'currency' => 'SAR',
+        'is_active' => true,
+    ]);
+
+    $creditService = app(CustomerCreditService::class);
+    $initialCheck = $creditService->checkCreditLimit($customer, $this->company->id, 0.0);
+    expect($initialCheck['has_credit_limit'])->toBeTrue()
+        ->and($initialCheck['credit_limit'])->toEqual(50000.00)
+        ->and($initialCheck['current_balance'])->toEqual(0.0)
+        ->and($initialCheck['available_credit'])->toEqual(50000.00)
+        ->and($initialCheck['is_exceeded'])->toBeFalse();
+
+    // 2. Create Sales Order #1 (Subtotal: 20,000 SAR)
+    $order1 = SalesOrder::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'order_number' => 'SO-SAUDI-2026-001',
+        'customer_id' => $customer->id,
+        'order_date' => now()->toDateString(),
+        'subtotal' => 20000.00,
+        'tax_rate' => 0.15,
+        'tax_amount' => 3000.00,
+        'discount_amount' => 0.00,
+        'total_amount' => 23000.00,
+        'status' => 'confirmed',
+        'invoicing_status' => 'unbilled',
+    ]);
+
+    SalesOrderLine::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'sales_order_id' => $order1->id,
+        'description' => 'ERP Turnkey Enterprise Implementation License',
+        'quantity' => 1,
+        'unit_price' => 20000.00,
+        'tax_amount' => 3000.00,
+        'line_total' => 23000.00,
+    ]);
+
+    // 3. Test Show route receives creditStatus prop
+    $showResp = $this->actingAs($this->user)->get(route('sales.orders.show', $order1->id));
+    $showResp->assertOk();
+    $showResp->assertInertia(fn ($page) => $page
+        ->component('Sales/Orders/Show')
+        ->has('creditStatus')
+        ->where('creditStatus.credit_limit', 50000)
+        ->where('creditStatus.is_exceeded', false)
+    );
+
+    // 4. Convert Order #1 to Tax Invoice (under limit -> succeeds)
+    $convertResp = $this->actingAs($this->user)->post(route('sales.orders.convert-to-invoice', $order1->id));
+    $convertResp->assertRedirect();
+    $convertResp->assertSessionHas('success');
+
+    $order1->refresh();
+    expect($order1->invoicing_status)->toBe('fully_billed');
+
+    $invoice1 = ServiceInvoice::where('sales_order_id', $order1->id)->first();
+    expect($invoice1)->not->toBeNull()
+        ->and($invoice1->status)->toBe('posted')
+        ->and((float) $invoice1->total)->toBeGreaterThan(0.0)
+        ->and($invoice1->party_id)->toBe($customer->id);
+
+    // 5. Verify Customer outstanding balance is now updated
+    $updatedCheck = $creditService->checkCreditLimit($customer, $this->company->id, 0.0);
+    expect($updatedCheck['current_balance'])->toBeGreaterThan(0.0)
+        ->and($updatedCheck['available_credit'])->toBeLessThan(50000.00);
+
+    // 6. Create Sales Order #2 with large total that pushes over 50,000 SAR limit
+    $order2 = SalesOrder::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'order_number' => 'SO-SAUDI-2026-002',
+        'customer_id' => $customer->id,
+        'order_date' => now()->toDateString(),
+        'subtotal' => 35000.00,
+        'tax_rate' => 0.15,
+        'tax_amount' => 5250.00,
+        'discount_amount' => 0.00,
+        'total_amount' => 40250.00,
+        'status' => 'confirmed',
+        'invoicing_status' => 'unbilled',
+    ]);
+
+    SalesOrderLine::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'sales_order_id' => $order2->id,
+        'description' => 'Custom Cloud Infrastructure Server Cluster',
+        'quantity' => 1,
+        'unit_price' => 35000.00,
+        'tax_amount' => 5250.00,
+        'line_total' => 40250.00,
+    ]);
+
+    // Check credit status for order 2: current_balance (~23,000) + 40,250 = ~63,250 > 50,000 => is_exceeded
+    $check2 = $creditService->checkCreditLimit($customer, $this->company->id, (float) $order2->total_amount);
+    expect($check2['is_exceeded'])->toBeTrue();
+
+    // 7. Attempt conversion without override -> should fail with error session
+    $blockedResp = $this->actingAs($this->user)->post(route('sales.orders.convert-to-invoice', $order2->id), [
+        'ignore_credit_limit' => false,
+    ]);
+    $blockedResp->assertRedirect();
+    $blockedResp->assertSessionHas('error');
+    expect($order2->fresh()->invoicing_status)->toBe('unbilled');
+
+    // 8. Attempt conversion WITH supervisor override -> should succeed
+    $overrideResp = $this->actingAs($this->user)->post(route('sales.orders.convert-to-invoice', $order2->id), [
+        'ignore_credit_limit' => true,
+    ]);
+    $overrideResp->assertRedirect();
+    $overrideResp->assertSessionHas('success');
+
+    $order2->refresh();
+    expect($order2->invoicing_status)->toBe('fully_billed');
+    $invoice2 = ServiceInvoice::where('sales_order_id', $order2->id)->first();
+    expect($invoice2)->not->toBeNull()
+        ->and($invoice2->status)->toBe('posted');
 });

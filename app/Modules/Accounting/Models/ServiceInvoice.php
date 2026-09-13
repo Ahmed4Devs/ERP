@@ -6,6 +6,7 @@ use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
 use App\Modules\Organization\Models\Company;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Sales\Models\SalesOrder;
 use App\Shared\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +25,7 @@ class ServiceInvoice extends Model
         'company_id',
         'branch_id',
         'party_id',
+        'sales_order_id',
         'invoice_number',
         'date',
         'due_date',
@@ -96,5 +98,10 @@ class ServiceInvoice extends Model
     public function allocations(): HasMany
     {
         return $this->hasMany(ReceiptAllocation::class, 'service_invoice_id');
+    }
+
+    public function salesOrder(): BelongsTo
+    {
+        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
     }
 }
