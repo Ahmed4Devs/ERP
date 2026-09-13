@@ -53,6 +53,7 @@ use App\Modules\Platform\Http\Controllers\DataImportController;
 use App\Modules\Projects\Http\Controllers\ProjectController;
 use App\Modules\Purchasing\Http\Controllers\DebitNoteController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
+use App\Modules\Purchasing\Http\Controllers\PurchaseRequisitionController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
 use App\Modules\Purchasing\Http\Controllers\VendorPaymentController;
 use App\Modules\Retail\Http\Controllers\PosOrderController;
@@ -131,6 +132,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/receipts/{receipt}/print', [ReceiptController::class, 'print'])->name('receipts.print');
 
     // Purchasing & Procure-to-Pay
+    Route::get('/purchase-requisitions', [PurchaseRequisitionController::class, 'index'])->name('purchase-requisitions.index');
+    Route::get('/purchase-requisitions/create', [PurchaseRequisitionController::class, 'create'])->name('purchase-requisitions.create');
+    Route::post('/purchase-requisitions', [PurchaseRequisitionController::class, 'store'])->name('purchase-requisitions.store');
+    Route::get('/purchase-requisitions/{purchaseRequisition}', [PurchaseRequisitionController::class, 'show'])->name('purchase-requisitions.show');
+    Route::post('/purchase-requisitions/{purchaseRequisition}/submit', [PurchaseRequisitionController::class, 'submit'])->name('purchase-requisitions.submit');
+    Route::post('/purchase-requisitions/{purchaseRequisition}/approve', [PurchaseRequisitionController::class, 'approve'])->name('purchase-requisitions.approve');
+    Route::post('/purchase-requisitions/{purchaseRequisition}/reject', [PurchaseRequisitionController::class, 'reject'])->name('purchase-requisitions.reject');
+    Route::post('/purchase-requisitions/{purchaseRequisition}/convert-to-po', [PurchaseRequisitionController::class, 'convertToPo'])->name('purchase-requisitions.convert-to-po');
+
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
     Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');

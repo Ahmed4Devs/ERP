@@ -129,6 +129,11 @@ export function AppSidebar() {
             title: t('nav.purchasing', 'المشتريات والموردين'),
             items: [
                 {
+                    title: t('nav.purchaseRequisitions', 'طلبات الشراء الداخلية (PR)'),
+                    href: '/purchase-requisitions',
+                    icon: FileCheck2,
+                },
+                {
                     title: t('nav.purchaseOrders', 'أوامر الشراء'),
                     href: '/purchase-orders',
                     icon: ShoppingBag,

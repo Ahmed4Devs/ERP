@@ -4,12 +4,17 @@ use App\Models\User;
 use App\Modules\HR\Models\Department;
 use App\Modules\HR\Models\Designation;
 use App\Modules\HR\Models\Employee;
+use App\Modules\Inventory\Models\Product;
+use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
 use App\Modules\Organization\Models\Company;
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Payroll\Services\WpsFileGeneratorService;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Purchasing\Models\PurchaseOrder;
+use App\Modules\Purchasing\Models\PurchaseRequisition;
+use App\Modules\Purchasing\Services\PurchaseRequisitionService;
 use App\Shared\Context\CurrentCompany;
 use App\Shared\Context\CurrentTenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -108,4 +113,98 @@ test('wps sif and mudad csv exports generate valid formats', function () {
     $csvResponse = $this->actingAs($this->user)->get(route('payroll.runs.wps-csv', $payrollRun->id));
     $csvResponse->assertOk();
     expect($csvResponse->headers->get('content-disposition'))->toContain('MUDAD-WPS-PR-2026-09.csv');
+});
+
+test('purchase requisitions full lifecycle and conversion to purchase orders works seamlessly', function () {
+    $dept = Department::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => 'PROC'],
+        ['tenant_id' => $this->tenant->id, 'name' => 'Procurement']
+    );
+
+    $product = Product::where('company_id', $this->company->id)->firstOrFail();
+    $product->update([
+        'moving_average_cost' => 4500,
+        'standard_cost' => 4500,
+    ]);
+
+    $vendor = Party::create([
+        'tenant_id' => $this->tenant->id,
+        'type' => 'vendor',
+        'name' => 'Saudi Tech Supplies Co.',
+        'tax_id' => '310998877600003',
+        'currency' => 'SAR',
+    ]);
+
+    // 1. Create Purchase Requisition via HTTP POST
+    $response = $this->actingAs($this->user)->post(route('purchase-requisitions.store'), [
+        'department_id' => $dept->id,
+        'required_date' => now()->addDays(5)->toDateString(),
+        'priority' => 'high',
+        'notes' => 'Urgent hardware requisitions for new software developers',
+        'lines' => [
+            [
+                'product_id' => $product->id,
+                'description' => 'Development Laptop 32GB RAM',
+                'quantity' => 2,
+                'estimated_unit_cost' => 4500,
+                'notes' => 'Include warranty',
+            ],
+            [
+                'product_id' => null,
+                'description' => 'Laptop backpacks & accessories',
+                'quantity' => 2,
+                'estimated_unit_cost' => 250,
+                'notes' => 'Accessories bundle',
+            ],
+        ],
+    ]);
+
+    $response->assertRedirect();
+    $requisition = PurchaseRequisition::where('company_id', $this->company->id)->latest()->first();
+
+    expect($requisition)->not->toBeNull()
+        ->and($requisition->status)->toBe('draft')
+        ->and($requisition->priority)->toBe('high')
+        ->and((float) $requisition->total_estimated_amount)->toBe(9500.0)
+        ->and($requisition->lines)->toHaveCount(2);
+
+    // 2. Submit for approval
+    $submitResp = $this->actingAs($this->user)->post(route('purchase-requisitions.submit', $requisition->id));
+    $submitResp->assertRedirect();
+    $requisition->refresh();
+    expect($requisition->status)->toBe('submitted');
+
+    // 3. Approve Requisition
+    $approveResp = $this->actingAs($this->user)->post(route('purchase-requisitions.approve', $requisition->id));
+    $approveResp->assertRedirect();
+    $requisition->refresh();
+    expect($requisition->status)->toBe('approved')
+        ->and($requisition->approved_by_id)->toBe($this->user->id)
+        ->and($requisition->approved_at)->not->toBeNull();
+
+    // 4. 1-Click Convert to Purchase Order
+    $convertResp = $this->actingAs($this->user)->post(route('purchase-requisitions.convert-to-po', $requisition->id), [
+        'vendor_party_id' => $vendor->id,
+        'expected_delivery_date' => now()->addDays(7)->toDateString(),
+    ]);
+
+    $requisition->refresh();
+    expect($requisition->status)->toBe('converted')
+        ->and($requisition->purchase_order_id)->not->toBeNull();
+
+    $po = PurchaseOrder::find($requisition->purchase_order_id);
+    expect($po)->not->toBeNull()
+        ->and($po->party_id)->toBe($vendor->id)
+        ->and($po->lines)->toHaveCount(2)
+        ->and((float) $po->subtotal)->toBe(9500.0)
+        ->and((float) $po->tax_amount)->toBe(950.0) // 10% tax
+        ->and((float) $po->total)->toBe(10450.0);
+
+    // 5. Verify cannot re-convert or reject converted PR
+    $service = app(PurchaseRequisitionService::class);
+    expect(fn () => $service->convertToPurchaseOrder($requisition, $vendor->id))
+        ->toThrow(InvalidArgumentException::class);
+
+    expect(fn () => $service->reject($requisition, 'Too late'))
+        ->toThrow(InvalidArgumentException::class);
 });
