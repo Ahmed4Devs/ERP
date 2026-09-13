@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Queries\AccountsReceivableAgingQuery;
 use App\Modules\Accounting\Queries\BalanceSheetQuery;
+use App\Modules\Accounting\Queries\CashFlowStatementQuery;
 use App\Modules\Accounting\Queries\GeneralLedgerQuery;
 use App\Modules\Accounting\Queries\IncomeStatementQuery;
 use App\Modules\Accounting\Queries\TrialBalanceQuery;
@@ -411,5 +412,71 @@ class ReportController extends Controller
         $rows[] = ['حالة التوازن المحاسبي / Balance Status', '', '', '', $report['is_balanced'] ? 'متزنة / Balanced' : 'غير متزنة / Unbalanced'];
 
         return $csvService->stream("balance-sheet-{$asOfDate}.csv", $headers, $rows);
+    }
+
+    public function cashFlow(Request $request, CashFlowStatementQuery $query): Response
+    {
+        $startDate = $request->start_date ?? now()->startOfYear()->toDateString();
+        $endDate = $request->end_date ?? now()->toDateString();
+
+        $reportData = $query->execute($startDate, $endDate);
+
+        return Inertia::render('Accounting/Reports/CashFlow', [
+            'report' => $reportData,
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
+        ]);
+    }
+
+    public function exportCashFlow(
+        Request $request,
+        CashFlowStatementQuery $query,
+        CsvExportService $csvService
+    ): StreamedResponse {
+        $startDate = $request->start_date ?? now()->startOfYear()->toDateString();
+        $endDate = $request->end_date ?? now()->toDateString();
+
+        $report = $query->execute($startDate, $endDate);
+
+        $headers = [
+            'النشاط / Activity Category',
+            'البند / Line Item (English)',
+            'البند / Line Item (Arabic)',
+            'المبلغ / Amount (SAR)',
+        ];
+
+        $rows = [];
+
+        // Operating Activities
+        $rows[] = ['الأنشطة التشغيلية / Operating Activities', 'Net Income', 'صافي الدخل / الربح', number_format((float) $report['operating_activities']['net_income'], 2)];
+        $rows[] = ['الأنشطة التشغيلية / Operating Activities', 'Depreciation & Non-Cash Adjustments', 'الإهلاك والتسويات غير النقدية', number_format((float) $report['operating_activities']['depreciation'], 2)];
+        foreach ($report['operating_activities']['working_capital_changes'] as $wc) {
+            $rows[] = ['الأنشطة التشغيلية / Operating Activities', $wc['name'], $wc['name_ar'], number_format((float) $wc['amount'], 2)];
+        }
+        $rows[] = ['الأنشطة التشغيلية / Operating Activities', 'Total Operating Cash Flow', 'إجمالي التدفق النقدي من الأنشطة التشغيلية', number_format((float) $report['operating_activities']['total_operating'], 2)];
+
+        // Investing Activities
+        $rows[] = ['', '', '', ''];
+        foreach ($report['investing_activities']['items'] as $inv) {
+            $rows[] = ['الأنشطة الاستثمارية / Investing Activities', $inv['name'], $inv['name_ar'], number_format((float) $inv['amount'], 2)];
+        }
+        $rows[] = ['الأنشطة الاستثمارية / Investing Activities', 'Total Investing Cash Flow', 'إجمالي التدفق النقدي من الأنشطة الاستثمارية', number_format((float) $report['investing_activities']['total_investing'], 2)];
+
+        // Financing Activities
+        $rows[] = ['', '', '', ''];
+        foreach ($report['financing_activities']['items'] as $fin) {
+            $rows[] = ['الأنشطة التمويلية / Financing Activities', $fin['name'], $fin['name_ar'], number_format((float) $fin['amount'], 2)];
+        }
+        $rows[] = ['الأنشطة التمويلية / Financing Activities', 'Total Financing Cash Flow', 'إجمالي التدفق النقدي من الأنشطة التمويلية', number_format((float) $report['financing_activities']['total_financing'], 2)];
+
+        // Reconciliation
+        $rows[] = ['', '', '', ''];
+        $rows[] = ['مطابقة النقدية / Cash Reconciliation', 'Net Change in Cash', 'صافي التغير في النقد وما في حكمه', number_format((float) $report['net_change_in_cash'], 2)];
+        $rows[] = ['مطابقة النقدية / Cash Reconciliation', 'Beginning Cash Balance', 'رصيد النقدية في بداية الفترة', number_format((float) $report['beginning_cash'], 2)];
+        $rows[] = ['مطابقة النقدية / Cash Reconciliation', 'Ending Cash Balance', 'رصيد النقدية في نهاية الفترة', number_format((float) $report['ending_cash'], 2)];
+
+        return $csvService->stream("cash-flow-{$startDate}-to-{$endDate}.csv", $headers, $rows);
     }
 }

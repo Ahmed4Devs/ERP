@@ -233,6 +233,11 @@ export function AppSidebar() {
                     icon: Scale,
                 },
                 {
+                    title: t('nav.cashFlow', 'قائمة التدفقات النقدية (IAS 7)'),
+                    href: '/reports/cash-flow',
+                    icon: Banknote,
+                },
+                {
                     title: t('nav.customerStatement', 'كشف حساب عميل'),
                     href: '/reports/customer-statement',
                     icon: UserCheck,
@@ -301,6 +306,11 @@ export function AppSidebar() {
                     title: t('nav.fxRevaluations', 'إعادة تقييم العملات وفروقات الصرف'),
                     href: '/accounting/fx-revaluations',
                     icon: Banknote,
+                },
+                {
+                    title: t('nav.yearEndClosing', 'إقفال السنة المالية'),
+                    href: '/accounting/year-end-closing',
+                    icon: Lock,
                 },
                 {
                     title: t('nav.trialBalance', 'ميزان المراجعة'),

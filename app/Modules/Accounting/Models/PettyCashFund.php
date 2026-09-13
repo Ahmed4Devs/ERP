@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Models\User;
+use App\Modules\Organization\Models\Branch;
 use App\Shared\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -48,7 +49,7 @@ class PettyCashFund extends Model
 
     public function branch(): BelongsTo
     {
-        return $this->belongsTo(\App\Modules\Organization\Models\Branch::class, 'branch_id');
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function settlements(): HasMany

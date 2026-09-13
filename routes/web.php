@@ -6,6 +6,7 @@ use App\Modules\Accounting\Http\Controllers\BudgetController;
 use App\Modules\Accounting\Http\Controllers\CostCenterController;
 use App\Modules\Accounting\Http\Controllers\CurrencyRateController;
 use App\Modules\Accounting\Http\Controllers\FiscalPeriodController;
+use App\Modules\Accounting\Http\Controllers\FiscalYearClosingController;
 use App\Modules\Accounting\Http\Controllers\FxRevaluationController;
 use App\Modules\Accounting\Http\Controllers\InvoiceController;
 use App\Modules\Accounting\Http\Controllers\JournalEntryController;
@@ -218,6 +219,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
     Route::get('/reports/balance-sheet/export', [ReportController::class, 'exportBalanceSheet'])->name('reports.balance-sheet.export');
 
+    Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow'])->name('reports.cash-flow');
+    Route::get('/reports/cash-flow/export', [ReportController::class, 'exportCashFlow'])->name('reports.cash-flow.export');
+
     Route::get('/reports/customer-statement', [StatementController::class, 'customerStatement'])->name('reports.customer-statement');
     Route::get('/reports/customer-statement/export', [StatementController::class, 'exportCustomerStatement'])->name('reports.customer-statement.export');
 
@@ -368,6 +372,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/accounting/periods', [FiscalPeriodController::class, 'index'])->name('accounting.periods.index');
     Route::post('/accounting/periods', [FiscalPeriodController::class, 'store'])->name('accounting.periods.store');
     Route::post('/accounting/periods/{fiscalPeriod}/lock', [FiscalPeriodController::class, 'toggleLock'])->name('accounting.periods.toggleLock');
+
+    // Fiscal Year-End Closing
+    Route::get('/accounting/year-end-closing', [FiscalYearClosingController::class, 'index'])->name('accounting.year-end-closing.index');
+    Route::get('/accounting/year-end-closing/create', [FiscalYearClosingController::class, 'create'])->name('accounting.year-end-closing.create');
+    Route::post('/accounting/year-end-closing', [FiscalYearClosingController::class, 'store'])->name('accounting.year-end-closing.store');
+    Route::get('/accounting/year-end-closing/{fiscalYearClosing}', [FiscalYearClosingController::class, 'show'])->name('accounting.year-end-closing.show');
+    Route::post('/accounting/year-end-closing/{fiscalYearClosing}/reopen', [FiscalYearClosingController::class, 'reopen'])->name('accounting.year-end-closing.reopen');
 
     // CRM Leads
     Route::get('/crm/leads', [LeadController::class, 'index'])->name('crm.leads.index');
