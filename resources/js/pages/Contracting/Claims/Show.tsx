@@ -27,19 +27,26 @@ interface ClaimItem {
 interface ContractingClaim {
     id: string;
     claim_number: string;
+    claim_type?: string;
     claim_date: string;
     contract_value: string;
     previous_billed_amount: string;
     current_work_amount: string;
+    cumulative_work_amount?: string;
+    completion_percentage?: string;
     retention_rate: string;
     retention_amount: string;
+    advance_payment_deduction_rate?: string;
+    advance_payment_deduction_amount?: string;
     net_claim_amount: string;
+    tax_rate?: string;
     tax_amount: string;
     total_amount: string;
+    is_retention_release?: boolean;
     status: 'draft' | 'certified' | 'billed' | 'rejected';
     notes?: string;
-    project?: { name: string };
-    customer?: { name: string; name_ar?: string; tax_id?: string };
+    project?: { id: string; name: string };
+    customer?: { id: string; name: string; name_ar?: string; tax_id?: string };
     invoice?: { id: string; invoice_number: string; total: string; status: string };
     items: ClaimItem[];
 }
@@ -128,32 +135,70 @@ export default function ContractingClaimShow({ claim }: Props) {
                 </div>
             </div>
 
+            {/* Cumulative Progress Bar */}
+            <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                    <span className="font-semibold text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
+                        <HardHat className="h-4 w-4 text-indigo-600" />
+                        {isRtl ? 'نسبة الإنجاز التراكمي للمشروع' : 'Cumulative Project Completion'}
+                    </span>
+                    <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                        {(Number(claim.completion_percentage || 0) * 100).toFixed(1)}% ({isRtl ? 'قيمة العقد:' : 'Contract:'} {Number(claim.contract_value).toLocaleString()} SAR)
+                    </span>
+                </div>
+                <div className="w-full h-2.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                    <div
+                        className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.max(2, Number(claim.completion_percentage || 0) * 100))}%` }}
+                    />
+                </div>
+                <div className="flex justify-between text-[11px] text-neutral-500">
+                    <span>{isRtl ? 'المعتمد سابقاً:' : 'Prev:'} {Number(claim.previous_billed_amount).toLocaleString()} SAR</span>
+                    <span>{isRtl ? 'مستخلص الفترة:' : 'Current:'} {Number(claim.current_work_amount).toLocaleString()} SAR</span>
+                    <span>{isRtl ? 'التراكمي الإجمالي:' : 'Cumulative:'} {Number(claim.cumulative_work_amount || claim.current_work_amount).toLocaleString()} SAR</span>
+                </div>
+            </div>
+
             {/* Financial Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-                    <p className="text-xs text-neutral-500">{isRtl ? 'إجمالي الأعمال المنجزة' : 'Certified Current Work'}</p>
-                    <p className="text-xl font-bold font-mono text-neutral-900 dark:text-neutral-100 mt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+                    <p className="text-xs text-neutral-500">{isRtl ? 'إنجاز الفترة' : 'Certified Work'}</p>
+                    <p className="text-base font-bold font-mono text-neutral-900 dark:text-neutral-100 mt-1">
                         {Number(claim.current_work_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
                     </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-                    <p className="text-xs text-neutral-500">{isRtl ? 'حسم الضمان التعاقدي (5%)' : 'Retention Withheld (5%)'}</p>
-                    <p className="text-xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">
+                <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+                    <p className="text-xs text-neutral-500">{isRtl ? 'حسم دفعة مقدمة' : 'Advance Recovery'}</p>
+                    <p className="text-base font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">
+                        -{Number(claim.advance_payment_deduction_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
+                    </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+                    <p className="text-xs text-neutral-500">{isRtl ? 'حسم ضمان (1250)' : 'Retention (1250)'}</p>
+                    <p className="text-base font-bold font-mono text-purple-600 dark:text-purple-400 mt-1">
                         -{Number(claim.retention_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
                     </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-                    <p className="text-xs text-neutral-500">{isRtl ? 'ضريبة القيمة المضافة (10%)' : 'VAT (10% Test Rate)'}</p>
-                    <p className="text-xl font-bold font-mono text-neutral-700 dark:text-neutral-300 mt-1">
+                <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+                    <p className="text-xs text-neutral-500">{isRtl ? 'الصافي قبل الضريبة' : 'Net Taxable'}</p>
+                    <p className="text-base font-bold font-mono text-neutral-800 dark:text-neutral-200 mt-1">
+                        {Number(claim.net_claim_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
+                    </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
+                    <p className="text-xs text-neutral-500">{isRtl ? 'ضريبة 15% (VAT)' : 'VAT (15%)'}</p>
+                    <p className="text-base font-bold font-mono text-neutral-700 dark:text-neutral-300 mt-1">
                         +{Number(claim.tax_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
                     </p>
                 </div>
 
-                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-                    <p className="text-xs text-neutral-500">{isRtl ? 'صافي المستحق للمقاول' : 'Total Claim Amount'}</p>
-                    <p className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                <div className="p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] shadow-sm">
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">{isRtl ? 'المستحق للمقاول' : 'Total Claim'}</p>
+                    <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
                         {Number(claim.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
                     </p>
                 </div>

@@ -4,6 +4,7 @@ namespace App\Modules\Contracting\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Contracting\Actions\ApproveAndBillProgressClaimAction;
+use App\Modules\Contracting\Actions\ReleaseContractingRetentionAction;
 use App\Modules\Contracting\Models\ContractingClaim;
 use App\Modules\Contracting\Models\ContractingClaimItem;
 use App\Modules\Localization\Services\QrCodeSvgService;
@@ -70,7 +71,9 @@ class ContractingClaimController extends Controller
             'claim_date' => 'required|date',
             'contract_value' => 'required|numeric|min:0',
             'previous_billed_amount' => 'nullable|numeric|min:0',
+            'advance_payment_deduction_rate' => 'nullable|numeric|min:0|max:1',
             'retention_rate' => 'nullable|numeric|min:0|max:1',
+            'tax_rate' => 'nullable|numeric|min:0|max:1',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.work_description' => 'required|string|max:255',
@@ -104,25 +107,52 @@ class ContractingClaimController extends Controller
                 ];
             }
 
+            // Advance recovery and Retention deductions
+            $advanceRate = number_format((float) ($validated['advance_payment_deduction_rate'] ?? 0), 4, '.', '');
+            $advanceDeduction = bcmul($currentWorkAmount, $advanceRate, 6);
+
             $retentionRate = number_format((float) ($validated['retention_rate'] ?? '0.0500'), 4, '.', '');
             $retentionAmount = bcmul($currentWorkAmount, $retentionRate, 6);
-            $netClaimAmount = bcsub($currentWorkAmount, $retentionAmount, 6);
-            $taxAmount = bcmul($netClaimAmount, '0.100000', 6);
+
+            $totalDeductions = bcadd($advanceDeduction, $retentionAmount, 6);
+            $netClaimAmount = bcsub($currentWorkAmount, $totalDeductions, 6);
+            if (bccomp($netClaimAmount, '0.000000', 6) < 0) {
+                $netClaimAmount = '0.000000';
+            }
+
+            // Saudi Standard VAT 15%
+            $taxRate = number_format((float) ($validated['tax_rate'] ?? '0.1500'), 4, '.', '');
+            $taxAmount = bcmul($netClaimAmount, $taxRate, 6);
             $totalAmount = bcadd($netClaimAmount, $taxAmount, 6);
+
+            // Cumulative progress metrics
+            $prevBilled = number_format((float) ($validated['previous_billed_amount'] ?? 0), 6, '.', '');
+            $cumulativeWork = bcadd($prevBilled, $currentWorkAmount, 6);
+            $contractVal = number_format((float) $validated['contract_value'], 6, '.', '');
+            $completionPct = bccomp($contractVal, '0.000000', 6) > 0
+                ? bcdiv($cumulativeWork, $contractVal, 4)
+                : '0.0000';
 
             $claim = ContractingClaim::create([
                 'tenant_id' => $tenantId,
                 'company_id' => $companyId,
                 'claim_number' => strtoupper($validated['claim_number']),
+                'claim_type' => 'progress',
                 'project_id' => $validated['project_id'],
                 'customer_id' => $validated['customer_id'],
                 'claim_date' => $validated['claim_date'],
-                'contract_value' => $validated['contract_value'],
-                'previous_billed_amount' => $validated['previous_billed_amount'] ?? '0.000000',
+                'contract_value' => $contractVal,
+                'previous_billed_amount' => $prevBilled,
                 'current_work_amount' => $currentWorkAmount,
+                'cumulative_work_amount' => $cumulativeWork,
+                'completion_percentage' => $completionPct,
+                'advance_payment_deduction_rate' => $advanceRate,
+                'advance_payment_deduction_amount' => $advanceDeduction,
                 'retention_rate' => $retentionRate,
                 'retention_amount' => $retentionAmount,
+                'cumulative_retention_amount' => $retentionAmount,
                 'net_claim_amount' => $netClaimAmount,
+                'tax_rate' => $taxRate,
                 'tax_amount' => $taxAmount,
                 'total_amount' => $totalAmount,
                 'status' => 'draft',
@@ -144,7 +174,23 @@ class ContractingClaimController extends Controller
         });
 
         return redirect()->route('contracting.claims.index')
-            ->with('success', 'Progress claim submitted successfully.');
+            ->with('success', 'تم تقديم المستخلص الجاري بنجاح.');
+    }
+
+    public function releaseRetention(Request $request, ReleaseContractingRetentionAction $releaseAction): RedirectResponse
+    {
+        $validated = $request->validate([
+            'project_id' => 'required|uuid|exists:projects,id',
+            'customer_id' => 'required|uuid|exists:parties,id',
+            'amount' => 'required|numeric|min:0.01',
+            'release_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $claim = $releaseAction->execute($validated);
+
+        return redirect()->route('contracting.claims.show', $claim->id)
+            ->with('success', 'تم فك واسترداد محتجزات ضمان الأعمال وإصدار الفاتورة النهائية بنجاح.');
     }
 
     public function show(ContractingClaim $claim): Response

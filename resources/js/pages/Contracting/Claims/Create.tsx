@@ -38,11 +38,13 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
         claim_date: new Date().toISOString().slice(0, 10),
         contract_value: '500000.00',
         previous_billed_amount: '0.00',
+        advance_payment_deduction_rate: '0.10',
         retention_rate: '0.05',
+        tax_rate: '0.15',
         notes: '',
         items: [
             {
-                work_description: 'Milestone 1: Foundation and Structural Concrete Works',
+                work_description: 'المرحلة 1: أعمال الأساسات والخرسانة المسلحة',
                 scheduled_value: '200000.00',
                 previous_percentage: '0.00',
                 current_percentage: '0.35',
@@ -92,10 +94,16 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
         return acc + sched * delta;
     }, 0);
 
+    const advanceDeductionPreview = currentWorkPreview * parseFloat(form.advance_payment_deduction_rate || '0');
     const retentionPreview = currentWorkPreview * parseFloat(form.retention_rate || '0.05');
-    const netClaimPreview = currentWorkPreview - retentionPreview;
-    const taxPreview = netClaimPreview * 0.10;
+    const netClaimPreview = Math.max(0, currentWorkPreview - advanceDeductionPreview - retentionPreview);
+    const taxPreview = netClaimPreview * parseFloat(form.tax_rate || '0.15');
     const totalPreview = netClaimPreview + taxPreview;
+
+    const prevBilled = parseFloat(form.previous_billed_amount || '0');
+    const cumulativeWorkPreview = prevBilled + currentWorkPreview;
+    const contractVal = parseFloat(form.contract_value || '1');
+    const completionPercentage = contractVal > 0 ? Math.min(100, (cumulativeWorkPreview / contractVal) * 100).toFixed(1) : '0';
 
     return (
         <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
@@ -176,7 +184,7 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                             <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
                                 {isRtl ? 'إجمالي قيمة العقد (SAR)' : 'Total Contract Value'}
@@ -187,6 +195,19 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
                                 step="any"
                                 value={form.contract_value}
                                 onChange={(e) => setForm({ ...form, contract_value: e.target.value })}
+                                className="mt-1 font-mono"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                                {isRtl ? 'الأعمال المعتمدة سابقاً (SAR)' : 'Previous Billed Amount'}
+                            </label>
+                            <Input
+                                type="number"
+                                step="any"
+                                value={form.previous_billed_amount}
+                                onChange={(e) => setForm({ ...form, previous_billed_amount: e.target.value })}
                                 className="mt-1 font-mono"
                             />
                         </div>
@@ -206,16 +227,57 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
 
                         <div>
                             <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
-                                {isRtl ? 'نسبة حجز الضمان (Retention Rate)' : 'Retention Withholding Rate'}
+                                {isRtl ? 'نسبة حسم الدفعة المقدمة' : 'Advance Recovery Rate'}
+                            </label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.10 (10%)"
+                                value={form.advance_payment_deduction_rate}
+                                onChange={(e) => setForm({ ...form, advance_payment_deduction_rate: e.target.value })}
+                                className="mt-1 font-mono text-amber-600"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                        <div>
+                            <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                                {isRtl ? 'نسبة حجز ضمان الأعمال (Retention)' : 'Retention Withholding Rate'}
                             </label>
                             <Input
                                 required
                                 type="number"
-                                step="any"
+                                step="0.01"
+                                placeholder="0.05 (5%)"
                                 value={form.retention_rate}
                                 onChange={(e) => setForm({ ...form, retention_rate: e.target.value })}
-                                className="mt-1 font-mono"
+                                className="mt-1 font-mono text-purple-600"
                             />
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                                {isRtl ? 'نسبة ضريبة القيمة المضافة القياسية' : 'Standard VAT Rate'}
+                            </label>
+                            <Input
+                                required
+                                type="number"
+                                step="0.01"
+                                placeholder="0.15 (15%)"
+                                value={form.tax_rate}
+                                onChange={(e) => setForm({ ...form, tax_rate: e.target.value })}
+                                className="mt-1 font-mono text-emerald-600"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                                {isRtl ? 'نسبة الإنجاز التراكمي المقدرة' : 'Est. Project Completion'}
+                            </label>
+                            <div className="mt-1 h-9 flex items-center px-3 rounded-md bg-neutral-100 dark:bg-neutral-800 font-mono font-bold text-sm text-indigo-600 dark:text-indigo-400">
+                                {completionPercentage}%
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -251,9 +313,10 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
 
                                 <div className="w-full sm:w-32">
                                     <label className="text-xs font-medium text-neutral-500">
-                                        {isRtl ? 'القيمة التعاقدية للبند' : 'Scheduled Value'}
+                                        {isRtl ? 'القيمة المقررة' : 'Value (SAR)'}
                                     </label>
                                     <Input
+                                        required
                                         type="number"
                                         step="any"
                                         value={item.scheduled_value}
@@ -264,7 +327,7 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
 
                                 <div className="w-full sm:w-28">
                                     <label className="text-xs font-medium text-neutral-500">
-                                        {isRtl ? 'الإنجاز السابق (0-1)' : 'Prev %'}
+                                        {isRtl ? 'النسبة السابقة' : 'Prev %'}
                                     </label>
                                     <Input
                                         type="number"
@@ -277,7 +340,7 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
 
                                 <div className="w-full sm:w-28">
                                     <label className="text-xs font-medium text-neutral-500">
-                                        {isRtl ? 'الإنجاز الحالي (0-1)' : 'Current %'}
+                                        {isRtl ? 'النسبة الحالية' : 'Curr %'}
                                     </label>
                                     <Input
                                         type="number"
@@ -304,25 +367,35 @@ export default function ContractingClaimCreate({ projects, customers }: Props) {
                 </div>
 
                 {/* Financial Rollup Preview */}
-                <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-950 text-white p-6 shadow-md grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-950 text-white p-6 shadow-md grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                     <div>
-                        <span className="text-xs text-neutral-400">{isRtl ? 'الأعمال المنجزة حالياً:' : 'Current Certified Work:'}</span>
-                        <p className="text-lg font-bold font-mono text-white mt-1">{currentWorkPreview.toFixed(2)} SAR</p>
+                        <span className="text-xs text-neutral-400">{isRtl ? 'الأعمال المنجزة:' : 'Certified Work:'}</span>
+                        <p className="text-base font-bold font-mono text-white mt-1">{currentWorkPreview.toFixed(2)} SAR</p>
                     </div>
 
                     <div>
-                        <span className="text-xs text-neutral-400">{isRtl ? 'محتجز الضمان (5%):' : 'Retention Withheld (5%):'}</span>
-                        <p className="text-lg font-bold font-mono text-amber-400 mt-1">-{retentionPreview.toFixed(2)} SAR</p>
+                        <span className="text-xs text-neutral-400">{isRtl ? 'حسم دفعة مقدمة:' : 'Advance Recovery:'}</span>
+                        <p className="text-base font-bold font-mono text-amber-400 mt-1">-{advanceDeductionPreview.toFixed(2)} SAR</p>
                     </div>
 
                     <div>
-                        <span className="text-xs text-neutral-400">{isRtl ? 'ضريبة القيمة المضافة (10%):' : 'VAT (10%):'}</span>
-                        <p className="text-lg font-bold font-mono text-neutral-300 mt-1">{taxPreview.toFixed(2)} SAR</p>
+                        <span className="text-xs text-neutral-400">{isRtl ? 'ضمان الأعمال (1250):' : 'Retention Withheld:'}</span>
+                        <p className="text-base font-bold font-mono text-purple-400 mt-1">-{retentionPreview.toFixed(2)} SAR</p>
                     </div>
 
                     <div>
-                        <span className="text-xs text-neutral-400">{isRtl ? 'المجموع الإجمالي المطلوب:' : 'Net Total Claim:'}</span>
-                        <p className="text-xl font-bold font-mono text-emerald-400 mt-1">{totalPreview.toFixed(2)} SAR</p>
+                        <span className="text-xs text-neutral-400">{isRtl ? 'الصافي قبل الضريبة:' : 'Net Taxable:'}</span>
+                        <p className="text-base font-bold font-mono text-neutral-300 mt-1">{netClaimPreview.toFixed(2)} SAR</p>
+                    </div>
+
+                    <div>
+                        <span className="text-xs text-neutral-400">{isRtl ? 'ضريبة القيمة المضافة 15%:' : 'VAT (15%):'}</span>
+                        <p className="text-base font-bold font-mono text-neutral-300 mt-1">{taxPreview.toFixed(2)} SAR</p>
+                    </div>
+
+                    <div>
+                        <span className="text-xs text-neutral-400">{isRtl ? 'إجمالي المستخلص المطلوب:' : 'Net Total Due:'}</span>
+                        <p className="text-lg font-bold font-mono text-emerald-400 mt-1">{totalPreview.toFixed(2)} SAR</p>
                     </div>
                 </div>
 

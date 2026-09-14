@@ -522,6 +522,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/contracting/claims', [ContractingClaimController::class, 'index'])->name('contracting.claims.index');
     Route::get('/contracting/claims/create', [ContractingClaimController::class, 'create'])->name('contracting.claims.create');
     Route::post('/contracting/claims', [ContractingClaimController::class, 'store'])->name('contracting.claims.store');
+    Route::post('/contracting/claims/release-retention', [ContractingClaimController::class, 'releaseRetention'])->name('contracting.claims.release-retention');
     Route::get('/contracting/claims/{claim}', [ContractingClaimController::class, 'show'])->name('contracting.claims.show');
     Route::get('/contracting/claims/{claim}/print', [ContractingClaimController::class, 'print'])->name('contracting.claims.print');
     Route::post('/contracting/claims/{claim}/bill', [ContractingClaimController::class, 'bill'])->name('contracting.claims.bill');

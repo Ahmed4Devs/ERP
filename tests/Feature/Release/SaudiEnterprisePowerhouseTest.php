@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Accounting\Models\Account;
+use App\Modules\Contracting\Models\ContractingClaim;
 use App\Modules\Inventory\Models\GoodsReceipt;
 use App\Modules\Inventory\Models\GoodsReceiptLine;
 use App\Modules\Inventory\Models\InventoryLevel;
@@ -12,6 +14,7 @@ use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
 use App\Modules\Organization\Models\Company;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Projects\Models\Project;
 use App\Shared\Context\CurrentCompany;
 use App\Shared\Context\CurrentTenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -228,5 +231,145 @@ test('it creates and posts landed cost with Saudi FASAH customs declaration and 
             ->has('landedCost.customs_declaration_number')
             ->where('landedCost.customs_declaration_number', 'FASAH-2026-99881')
             ->where('landedCost.port_of_entry', 'ميناء جدة الإسلامي')
+        );
+});
+
+test('it processes Saudi contracting milestone progress claim with advance recovery, retention guarantee, 15% VAT, and retention release', function () {
+    // 1. Setup project and customer
+    $customer = Party::firstOrCreate(
+        ['tenant_id' => $this->tenant->id, 'name' => 'Saudi Aramco Commercial'],
+        ['type' => 'customer', 'name_ar' => 'شركة أرامكو السعودية التجارية', 'company_id' => $this->company->id]
+    );
+
+    $project = Project::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'project_number' => 'PRJ-DHA-001',
+        'customer_id' => $customer->id,
+        'name' => 'Dhahran Engineering Facility Tower',
+        'start_date' => now()->toDateString(),
+        'status' => 'in_progress',
+    ]);
+
+    // Ensure Revenue Account 4100 exists
+    Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '4100'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Contracting Revenue',
+            'name_ar' => 'إيرادات عقود المقاولات والمشاريع',
+            'type' => 'revenue',
+            'subtype' => 'operating_revenue',
+            'is_postable' => true,
+        ]
+    );
+
+    // 2. Submit Progress Claim via POST
+    // Contract value = 1,000,000 SAR
+    // Previous billed = 100,000 SAR
+    // Current work = 100,000 SAR (200,000 cumulative = 20% completion)
+    // Advance recovery (10%) = 10,000 SAR
+    // Retention guarantee (5%) = 5,000 SAR
+    // Net taxable = 100,000 - 15,000 = 85,000 SAR
+    // Saudi 15% VAT = 12,750 SAR
+    // Total due = 97,750 SAR
+    $claimData = [
+        'claim_number' => 'CLM-DHA-2026-002',
+        'project_id' => $project->id,
+        'customer_id' => $customer->id,
+        'claim_date' => now()->toDateString(),
+        'contract_value' => 1000000.00,
+        'previous_billed_amount' => 100000.00,
+        'advance_payment_deduction_rate' => 0.10,
+        'retention_rate' => 0.05,
+        'tax_rate' => 0.15,
+        'notes' => 'المستخلص الدوري رقم 2 - أعمال الهيكل الإنشائي والخرسانات',
+        'items' => [
+            [
+                'work_description' => 'أعمال الخرسانة المسلحة للأعمدة والأسقف',
+                'scheduled_value' => 400000.00,
+                'previous_percentage' => 0.25,
+                'current_percentage' => 0.50, // Delta 25% of 400k = 100,000 SAR
+            ],
+        ],
+    ];
+
+    $createResponse = $this->actingAs($this->user)
+        ->post(route('contracting.claims.store'), $claimData);
+
+    $createResponse->assertRedirect();
+
+    $claim = ContractingClaim::where('claim_number', 'CLM-DHA-2026-002')->first();
+    expect($claim)->not->toBeNull()
+        ->and((float) $claim->current_work_amount)->toBe(100000.0)
+        ->and((float) $claim->advance_payment_deduction_amount)->toBe(10000.0)
+        ->and((float) $claim->retention_amount)->toBe(5000.0)
+        ->and((float) $claim->net_claim_amount)->toBe(85000.0)
+        ->and((float) $claim->tax_amount)->toBe(12750.0)
+        ->and((float) $claim->total_amount)->toBe(97750.0)
+        ->and((float) $claim->cumulative_work_amount)->toBe(200000.0)
+        ->and((float) $claim->completion_percentage)->toBe(0.2) // 20% completion
+        ->and($claim->status)->toBe('draft');
+
+    // 3. Certify and generate official Service Invoice
+    $billResponse = $this->actingAs($this->user)
+        ->post(route('contracting.claims.bill', $claim->id));
+
+    $billResponse->assertRedirect();
+    $claim->refresh();
+
+    expect($claim->status)->toBe('billed')
+        ->and($claim->invoice_id)->not->toBeNull()
+        ->and($claim->retention_account_id)->not->toBeNull();
+
+    // Verify generated Service Invoice
+    $invoice = $claim->invoice;
+    expect($invoice)->not->toBeNull()
+        ->and((float) $invoice->subtotal)->toBe(85000.0)
+        ->and((float) $invoice->tax_amount)->toBe(12750.0)
+        ->and((float) $invoice->total)->toBe(97750.0)
+        ->and((float) $invoice->tax_rate)->toBe(0.15);
+
+    // Verify Retention Account 1250 was created and attached
+    $retentionAccount = Account::find($claim->retention_account_id);
+    expect($retentionAccount)->not->toBeNull()
+        ->and($retentionAccount->code)->toBe('1250');
+
+    // 4. Test Retention Release Workflow upon Final Handover
+    $releasePayload = [
+        'project_id' => $project->id,
+        'customer_id' => $customer->id,
+        'amount' => 5000.00, // Releasing the 5,000 SAR retention
+        'release_date' => now()->addYear()->toDateString(),
+        'notes' => 'شهادة الاستلام النهائي وفك محتجزات ضمان الأعمال لمشروع برج الظهران',
+    ];
+
+    $releaseResponse = $this->actingAs($this->user)
+        ->post(route('contracting.claims.release-retention'), $releasePayload);
+
+    $releaseResponse->assertRedirect();
+
+    $releaseClaim = ContractingClaim::where('claim_type', 'retention_release')
+        ->where('project_id', $project->id)
+        ->first();
+
+    expect($releaseClaim)->not->toBeNull()
+        ->and($releaseClaim->is_retention_release)->toBeTrue()
+        ->and((float) $releaseClaim->total_amount)->toBe(5000.0)
+        ->and($releaseClaim->status)->toBe('billed');
+
+    $finalInvoice = $releaseClaim->invoice;
+    expect($finalInvoice)->not->toBeNull()
+        ->and((float) $finalInvoice->total)->toBe(5000.0);
+
+    // 5. Test Printable Certificate view
+    $printResponse = $this->actingAs($this->user)
+        ->get(route('contracting.claims.print', $claim->id));
+
+    $printResponse->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Contracting/Claims/Print')
+            ->has('amountInWords.ar')
+            ->has('qrCodeDataUri')
         );
 });

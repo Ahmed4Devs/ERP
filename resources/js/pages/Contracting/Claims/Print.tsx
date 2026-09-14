@@ -217,23 +217,31 @@ export default function ContractingClaimPrint({ claim, company, qrCodeDataUri, a
 
                 {/* Financial Summary & Deductions Card */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6 text-xs">
-                    {/* Retention & Tax Breakdown */}
+                    {/* Retention, Advance Recovery & Tax Breakdown */}
                     <div className="rounded-xl border border-neutral-200 p-4 bg-neutral-50 font-mono flex flex-col justify-between">
                         <div className="flex flex-col gap-2">
                             <div className="flex justify-between items-center text-neutral-700">
                                 <span className="font-sans">{isRtl ? 'قيمة الأعمال المنجزة' : 'Gross Work Amount'}:</span>
                                 <span className="font-bold">{Number(claim.current_work_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
                             </div>
-                            <div className="flex justify-between items-center text-rose-700">
-                                <span className="font-sans">{isRtl ? `حسم ضمان حسن التنفيذ (${(Number(claim.retention_rate) * 100).toFixed(0)}% Retention)` : 'Retention Deducted'}:</span>
-                                <span className="font-bold">-{Number(claim.retention_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
-                            </div>
+                            {Number(claim.advance_payment_deduction_amount) > 0 && (
+                                <div className="flex justify-between items-center text-amber-700">
+                                    <span className="font-sans">{isRtl ? `حسم استرداد الدفعة المقدمة (${(Number(claim.advance_payment_deduction_rate || 0) * 100).toFixed(0)}%)` : 'Advance Recovery Deducted'}:</span>
+                                    <span className="font-bold">-{Number(claim.advance_payment_deduction_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
+                                </div>
+                            )}
+                            {Number(claim.retention_amount) > 0 && (
+                                <div className="flex justify-between items-center text-rose-700">
+                                    <span className="font-sans">{isRtl ? `حسم ضمان حسن التنفيذ (${(Number(claim.retention_rate) * 100).toFixed(0)}% Retention)` : 'Retention Deducted'}:</span>
+                                    <span className="font-bold">-{Number(claim.retention_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center text-neutral-900 border-t border-neutral-200 pt-2 font-bold">
-                                <span className="font-sans">{isRtl ? 'صافي الأعمال قبل الضريبة' : 'Net Before Tax'}:</span>
+                                <span className="font-sans">{isRtl ? 'صافي الأعمال الخاضعة للضريبة' : 'Net Taxable Subtotal'}:</span>
                                 <span>{Number(claim.net_claim_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
                             </div>
                             <div className="flex justify-between items-center text-indigo-700">
-                                <span className="font-sans">{isRtl ? 'ضريبة القيمة المضافة (10% VAT)' : 'VAT (10%)'}:</span>
+                                <span className="font-sans">{isRtl ? `ضريبة القيمة المضافة (${(Number(claim.tax_rate || 0.15) * 100).toFixed(0)}% VAT)` : `VAT (${(Number(claim.tax_rate || 0.15) * 100).toFixed(0)}%)`}:</span>
                                 <span className="font-bold">+{Number(claim.tax_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {currency}</span>
                             </div>
                         </div>

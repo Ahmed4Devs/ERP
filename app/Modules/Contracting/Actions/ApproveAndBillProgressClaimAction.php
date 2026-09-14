@@ -53,23 +53,71 @@ class ApproveAndBillProgressClaimAction
                 throw new InvalidArgumentException('Current work amount must be greater than zero to generate a bill.');
             }
 
-            // Retention calculation
-            $retentionRate = number_format((float) $claim->retention_rate, 4, '.', '');
-            $retentionAmount = bcmul($currentWorkAmount, $retentionRate, 6);
-            $netClaimAmount = bcsub($currentWorkAmount, $retentionAmount, 6);
+            // Advance payment recovery deduction
+            $advanceRate = number_format((float) ($claim->advance_payment_deduction_rate ?? 0), 4, '.', '');
+            $advanceDeduction = bcmul($currentWorkAmount, $advanceRate, 6);
 
-            // 10% Test Tax
-            $taxRate = '0.100000';
+            // Retention guarantee deduction
+            $retentionRate = number_format((float) ($claim->retention_rate ?? '0.0500'), 4, '.', '');
+            $retentionAmount = bcmul($currentWorkAmount, $retentionRate, 6);
+
+            // Net certified claim amount before VAT
+            $totalDeductions = bcadd($advanceDeduction, $retentionAmount, 6);
+            $netClaimAmount = bcsub($currentWorkAmount, $totalDeductions, 6);
+
+            if (bccomp($netClaimAmount, '0.000000', 6) < 0) {
+                throw new InvalidArgumentException("Deductions ({$totalDeductions}) cannot exceed certified work amount ({$currentWorkAmount}).");
+            }
+
+            // Saudi Standard VAT 15%
+            $taxRate = number_format((float) ($claim->tax_rate ?: '0.1500'), 4, '.', '');
             $taxAmount = bcmul($netClaimAmount, $taxRate, 6);
             $totalAmount = bcadd($netClaimAmount, $taxAmount, 6);
+
+            // Cumulative progress tracking
+            $prevBilled = (string) ($claim->previous_billed_amount ?? '0.000000');
+            $cumulativeWork = bcadd($prevBilled, $currentWorkAmount, 6);
+            $contractVal = (string) ($claim->contract_value ?? '0.000000');
+            $completionPercentage = bccomp($contractVal, '0.000000', 6) > 0
+                ? bcdiv($cumulativeWork, $contractVal, 4)
+                : '0.0000';
+
+            // Locate or create Retention Receivable Account (1250)
+            $retentionAccount = Account::firstOrCreate(
+                ['company_id' => $companyId, 'code' => '1250'],
+                [
+                    'tenant_id' => $tenantId,
+                    'name' => 'Contract Retention Receivable',
+                    'name_ar' => 'محتجزات ضمان أعمال مدينة',
+                    'type' => 'asset',
+                    'subtype' => 'other_current_asset',
+                    'is_postable' => true,
+                ]
+            );
 
             // Locate branch and revenue account
             $branch = Branch::where('company_id', $companyId)->first();
             $branchId = $branch ? $branch->id : null;
 
-            $revenueAccount = Account::where('company_id', $companyId)->where('code', '4100')->firstOrFail();
+            $revenueAccount = Account::where('company_id', $companyId)
+                ->where(function ($q) {
+                    $q->where('code', '4100')->orWhere('type', 'revenue');
+                })
+                ->firstOrFail();
 
             $invoiceNumber = 'INV-CLM-'.date('Ymd').'-'.strtoupper(Str::random(6));
+
+            $claimDesc = "مستخلص أعمال جاري رقم [{$claim->claim_number}] - مشروع [".($claim->project ? $claim->project->name : 'N/A').']';
+            if (bccomp($advanceDeduction, '0.000000', 6) > 0 || bccomp($retentionAmount, '0.000000', 6) > 0) {
+                $claimDesc .= " (الأعمال: {$currentWorkAmount} SAR";
+                if (bccomp($advanceDeduction, '0.000000', 6) > 0) {
+                    $claimDesc .= " - حسم دفعة مقدمة: {$advanceDeduction} SAR";
+                }
+                if (bccomp($retentionAmount, '0.000000', 6) > 0) {
+                    $claimDesc .= " - ضمان أعمال: {$retentionAmount} SAR";
+                }
+                $claimDesc .= ')';
+            }
 
             // Generate Service Invoice
             $invoice = ServiceInvoice::create([
@@ -95,7 +143,7 @@ class ApproveAndBillProgressClaimAction
                 'tenant_id' => $tenantId,
                 'company_id' => $companyId,
                 'service_invoice_id' => $invoice->id,
-                'description' => "Progress Claim [{$claim->claim_number}] - Certified Work: {$currentWorkAmount} less {$claim->retention_rate}% Retention ({$retentionAmount})",
+                'description' => $claimDesc,
                 'quantity' => '1.000000',
                 'unit_price' => $netClaimAmount,
                 'tax_rate' => $taxRate,
@@ -104,20 +152,29 @@ class ApproveAndBillProgressClaimAction
                 'revenue_account_id' => $revenueAccount->id,
             ]);
 
-            // Update Claim record
+            // Update Claim record with complete cumulative metrics
             $claim->current_work_amount = $currentWorkAmount;
+            $claim->cumulative_work_amount = $cumulativeWork;
+            $claim->completion_percentage = $completionPercentage;
+            $claim->advance_payment_deduction_rate = $advanceRate;
+            $claim->advance_payment_deduction_amount = $advanceDeduction;
+            $claim->retention_rate = $retentionRate;
             $claim->retention_amount = $retentionAmount;
+            $claim->cumulative_retention_amount = bcadd((string) ($claim->cumulative_retention_amount ?? 0), $retentionAmount, 6);
             $claim->net_claim_amount = $netClaimAmount;
+            $claim->tax_rate = $taxRate;
             $claim->tax_amount = $taxAmount;
             $claim->total_amount = $totalAmount;
             $claim->status = 'billed';
             $claim->invoice_id = $invoice->id;
+            $claim->retention_account_id = $retentionAccount->id;
+
             if (! empty($data['notes'])) {
                 $claim->notes = $claim->notes ? ($claim->notes."\n".$data['notes']) : $data['notes'];
             }
             $claim->save();
 
-            return $claim->fresh(['project', 'customer', 'invoice', 'items']);
+            return $claim->fresh(['project', 'customer', 'invoice', 'items', 'retentionAccount']);
         });
     }
 }
