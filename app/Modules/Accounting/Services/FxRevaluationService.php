@@ -24,12 +24,12 @@ class FxRevaluationService
      */
     protected array $defaultRates = [
         'USD' => 3.750000,
-        'EUR' => 4.085000,
-        'GBP' => 4.862000,
+        'EUR' => 4.050000,
+        'GBP' => 4.850000,
         'AED' => 1.021000,
-        'KWD' => 12.225000,
-        'BHD' => 9.946900,
-        'OMR' => 9.740200,
+        'KWD' => 12.250000,
+        'BHD' => 9.950000,
+        'OMR' => 9.740000,
         'QAR' => 1.030000,
         'SAR' => 1.000000,
     ];
@@ -72,10 +72,6 @@ class FxRevaluationService
             return 1.0;
         }
 
-        if ($currency === 'USD') {
-            return SamaExchangeRateService::USD_STATUTORY_PEG_RATE;
-        }
-
         $date = $asOfDate ?? now()->toDateString();
 
         $rateRecord = CurrencyExchangeRate::where('company_id', $companyId)
@@ -89,7 +85,7 @@ class FxRevaluationService
             return (float) $rateRecord->rate;
         }
 
-        return $this->samaService->getOfficialRate($currency, $date);
+        return $this->defaultRates[$currency] ?? $this->samaService->getOfficialRate($currency, $date);
     }
 
     /**

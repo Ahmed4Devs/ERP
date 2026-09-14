@@ -69,8 +69,14 @@ class ApproveAndBillProgressClaimAction
                 throw new InvalidArgumentException("Deductions ({$totalDeductions}) cannot exceed certified work amount ({$currentWorkAmount}).");
             }
 
-            // Saudi Standard VAT 15%
-            $taxRate = number_format((float) ($claim->tax_rate ?: '0.1500'), 4, '.', '');
+            // Saudi VAT Rate (defaults to 15% standard rate, or respects claim specified/deduced rate)
+            if ($claim->tax_rate !== null) {
+                $taxRate = number_format((float) $claim->tax_rate, 4, '.', '');
+            } elseif ((float) $claim->tax_amount > 0 && (float) $claim->net_claim_amount > 0) {
+                $taxRate = number_format((float) $claim->tax_amount / (float) $claim->net_claim_amount, 4, '.', '');
+            } else {
+                $taxRate = '0.1500';
+            }
             $taxAmount = bcmul($netClaimAmount, $taxRate, 6);
             $totalAmount = bcadd($netClaimAmount, $taxAmount, 6);
 
