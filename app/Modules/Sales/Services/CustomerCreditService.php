@@ -12,7 +12,8 @@ class CustomerCreditService
      */
     public function getOutstandingBalance(Party $customer, string $companyId): float
     {
-        return (float) ServiceInvoice::where('company_id', $companyId)
+        return (float) ServiceInvoice::withoutGlobalScope('company_scope')
+            ->where('company_id', $companyId)
             ->where('party_id', $customer->id)
             ->whereIn('status', ['posted', 'partially_paid'])
             ->sum('balance_due');
@@ -34,6 +35,7 @@ class CustomerCreditService
     public function checkCreditLimit(Party $customer, string $companyId, float $additionalAmount = 0.0): array
     {
         $profile = $customer->customerProfiles()
+            ->withoutGlobalScope('company_scope')
             ->where('company_id', $companyId)
             ->first();
 

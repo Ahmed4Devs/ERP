@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeftRight,
     ArrowDownUp,
@@ -47,6 +47,7 @@ import {
     RotateCcw,
     Archive,
     Barcode,
+    Sliders,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -68,6 +69,14 @@ import type { NavItem } from '@/types';
 export function AppSidebar() {
     const { locale, t } = useTranslation();
     const side = locale === 'ar' ? 'right' : 'left';
+    const { props } = usePage();
+    const enabledModules: string[] | undefined = (props as any).enabledModules;
+
+    const isModuleActive = (moduleKey?: string) => {
+        if (!moduleKey) return true;
+        if (!enabledModules || enabledModules.length === 0) return true;
+        return enabledModules.includes(moduleKey);
+    };
 
     const navGroups: NavGroup[] = [
         {
@@ -87,6 +96,7 @@ export function AppSidebar() {
         },
         {
             title: t('nav.sales', 'المبيعات وإدارة العملاء'),
+            moduleKey: 'sales',
             items: [
                 {
                     title: t('nav.customers', 'العملاء والأطراف'),
@@ -127,6 +137,7 @@ export function AppSidebar() {
         },
         {
             title: t('nav.purchasing', 'المشتريات والموردين'),
+            moduleKey: 'purchasing',
             items: [
                 {
                     title: t('nav.purchaseRequisitions', 'طلبات الشراء الداخلية (PR)'),
@@ -157,6 +168,7 @@ export function AppSidebar() {
         },
         {
             title: t('nav.inventory', 'المستودعات والمخزون'),
+            moduleKey: 'inventory',
             items: [
                 {
                     title: t('nav.products', 'المنتجات والأصناف'),
@@ -222,6 +234,7 @@ export function AppSidebar() {
         },
         {
             title: t('nav.accounting', 'المحاسبة والمالية'),
+            moduleKey: 'financials',
             items: [
                 {
                     title: t('nav.accounts', 'دليل الحسابات'),
@@ -352,6 +365,7 @@ export function AppSidebar() {
         },
         {
             title: t('nav.hr', 'الموارد البشرية والرواتب'),
+            moduleKey: 'hr_payroll',
             items: [
                 {
                     title: t('nav.employees', 'الموظفون والكادر'),
@@ -402,31 +416,37 @@ export function AppSidebar() {
                     title: t('nav.fixedAssets', 'سجل الأصول الثابتة'),
                     href: '/assets/register',
                     icon: Layers,
+                    moduleKey: 'fixed_assets',
                 },
                 {
                     title: t('nav.depreciation', 'إهلاك الأصول'),
                     href: '/assets/depreciation',
                     icon: TrendingDown,
+                    moduleKey: 'fixed_assets',
                 },
                 {
                     title: t('nav.assetDisposals', 'استبعاد وتخريد الأصول'),
                     href: '/assets/disposals',
                     icon: Archive,
+                    moduleKey: 'fixed_assets',
                 },
                 {
                     title: t('nav.projects', 'المشاريع وبطاقات الوقت'),
                     href: '/projects',
                     icon: FolderKanban,
+                    moduleKey: 'projects_support',
                 },
                 {
                     title: t('nav.contracts', 'العقود الدورية'),
                     href: '/contracts',
                     icon: FileCheck2,
+                    moduleKey: 'projects_support',
                 },
                 {
                     title: t('nav.supportTickets', 'تذاكر الدعم الفني'),
                     href: '/support/tickets',
                     icon: LifeBuoy,
+                    moduleKey: 'projects_support',
                 },
             ],
         },
@@ -437,36 +457,43 @@ export function AppSidebar() {
                     title: t('nav.posTerminals', 'نقاط البيع (الكاشير)'),
                     href: '/retail/terminals',
                     icon: Store,
+                    moduleKey: 'retail_pos',
                 },
                 {
                     title: t('nav.posSessions', 'جلسات وورديات الكاشير'),
                     href: '/retail/sessions',
                     icon: Receipt,
+                    moduleKey: 'retail_pos',
                 },
                 {
                     title: t('nav.tradePriceLists', 'قوائم الأسعار وشرائح الجملة'),
                     href: '/trade/pricelists',
                     icon: Percent,
+                    moduleKey: 'sales',
                 },
                 {
                     title: t('nav.manufacturingBoms', 'قوائم المواد (BOM)'),
                     href: '/manufacturing/boms',
                     icon: Factory,
+                    moduleKey: 'manufacturing',
                 },
                 {
                     title: t('nav.productionOrders', 'أوامر الإنتاج والتصنيع'),
                     href: '/manufacturing/orders',
                     icon: Cpu,
+                    moduleKey: 'manufacturing',
                 },
                 {
                     title: t('nav.contractingClaims', 'مستخلصات المقاولات'),
                     href: '/contracting/claims',
                     icon: HardHat,
+                    moduleKey: 'contracting',
                 },
             ],
         },
         {
             title: t('nav.governance', 'الحوكمة والاعتمادات المالية'),
+            moduleKey: 'governance',
             items: [
                 {
                     title: t('nav.approvals', 'مركز الموافقات والطلبات'),
@@ -489,6 +516,11 @@ export function AppSidebar() {
             title: t('nav.platformSettings', 'إدارة وتكامل البيانات'),
             items: [
                 {
+                    title: t('nav.modules', 'إدارة وتفعيل الموديولات (Modules)'),
+                    href: '/settings/modules',
+                    icon: Sliders,
+                },
+                {
                     title: t('nav.dataImport', 'استيراد وتصدير البيانات'),
                     href: '/data-import',
                     icon: Database,
@@ -496,6 +528,14 @@ export function AppSidebar() {
             ],
         },
     ];
+
+    const filteredNavGroups = navGroups
+        .filter(group => isModuleActive(group.moduleKey))
+        .map(group => ({
+            ...group,
+            items: group.items.filter(item => isModuleActive(item.moduleKey)),
+        }))
+        .filter(group => group.items.length > 0);
 
     const footerNavItems: NavItem[] = [
         {
@@ -525,7 +565,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain groups={navGroups} />
+                <NavMain groups={filteredNavGroups} />
             </SidebarContent>
 
             <SidebarFooter>

@@ -26,7 +26,8 @@ class CustomerPortalController extends Controller
      */
     protected function resolveCustomerProfile(string $token): CustomerProfile
     {
-        $profile = CustomerProfile::where('portal_token', $token)
+        $profile = CustomerProfile::withoutGlobalScope('company_scope')
+            ->where('portal_token', $token)
             ->where('portal_access_enabled', true)
             ->where('is_active', true)
             ->with(['party', 'company.tenant'])

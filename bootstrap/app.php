@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Modules\Platform\Http\Middleware\EnsureTenantAndCompanyScope;
@@ -17,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+
+        $middleware->alias([
+            'module' => EnsureModuleEnabled::class,
+        ]);
 
         $middleware->web(append: [
             EnsureTenantAndCompanyScope::class,

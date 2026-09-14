@@ -12,6 +12,7 @@ import type { NavItem } from '@/types';
 export interface NavGroup {
     title?: string;
     items: NavItem[];
+    moduleKey?: string;
 }
 
 export function NavMain({

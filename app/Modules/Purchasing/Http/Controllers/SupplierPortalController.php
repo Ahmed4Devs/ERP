@@ -22,7 +22,8 @@ class SupplierPortalController extends Controller
      */
     protected function resolveVendorProfile(string $token): VendorProfile
     {
-        $profile = VendorProfile::where('portal_token', $token)
+        $profile = VendorProfile::withoutGlobalScope('company_scope')
+            ->where('portal_token', $token)
             ->where('portal_access_enabled', true)
             ->where('is_active', true)
             ->with(['party', 'company.tenant'])

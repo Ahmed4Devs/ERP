@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Modules\Organization\Models\Branch;
 use App\Modules\Organization\Models\Company;
+use App\Modules\Platform\Services\ModuleRegistry;
 use App\Shared\Context\CurrentCompany;
 use App\Shared\Context\CurrentTenant;
 use Illuminate\Http\Request;
@@ -76,6 +77,7 @@ class HandleInertiaRequests extends Middleware
                 'tenants' => $tenants,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'enabledModules' => app(ModuleRegistry::class)->getEnabledModulesForCompany($currentCompany->get()),
         ];
     }
 }

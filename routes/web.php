@@ -54,6 +54,7 @@ use App\Modules\Platform\Http\Controllers\AuditLogController;
 use App\Modules\Platform\Http\Controllers\ContextController;
 use App\Modules\Platform\Http\Controllers\DashboardController;
 use App\Modules\Platform\Http\Controllers\DataImportController;
+use App\Modules\Platform\Http\Controllers\ModuleController;
 use App\Modules\Projects\Http\Controllers\ProjectController;
 use App\Modules\Purchasing\Http\Controllers\DebitNoteController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
@@ -487,31 +488,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/support/tickets/{ticket}/resolve', [SupportTicketController::class, 'resolve'])->name('support.tickets.resolve');
 
     // Retail & Point of Sale (POS)
-    Route::get('/retail/terminals', [PosTerminalController::class, 'index'])->name('retail.terminals.index');
-    Route::post('/retail/terminals', [PosTerminalController::class, 'store'])->name('retail.terminals.store');
-    Route::get('/retail/pos/{terminal}', [PosTerminalController::class, 'terminal'])->name('retail.pos.terminal');
+    Route::middleware('module:retail_pos')->group(function () {
+        Route::get('/retail/terminals', [PosTerminalController::class, 'index'])->name('retail.terminals.index');
+        Route::post('/retail/terminals', [PosTerminalController::class, 'store'])->name('retail.terminals.store');
+        Route::get('/retail/pos/{terminal}', [PosTerminalController::class, 'terminal'])->name('retail.pos.terminal');
 
-    Route::get('/retail/sessions', [PosSessionController::class, 'index'])->name('retail.sessions.index');
-    Route::post('/retail/sessions', [PosSessionController::class, 'store'])->name('retail.sessions.store');
-    Route::get('/retail/sessions/{session}', [PosSessionController::class, 'show'])->name('retail.sessions.show');
-    Route::post('/retail/sessions/{session}/close', [PosSessionController::class, 'close'])->name('retail.sessions.close');
+        Route::get('/retail/sessions', [PosSessionController::class, 'index'])->name('retail.sessions.index');
+        Route::post('/retail/sessions', [PosSessionController::class, 'store'])->name('retail.sessions.store');
+        Route::get('/retail/sessions/{session}', [PosSessionController::class, 'show'])->name('retail.sessions.show');
+        Route::post('/retail/sessions/{session}/close', [PosSessionController::class, 'close'])->name('retail.sessions.close');
 
-    Route::post('/retail/orders', [PosOrderController::class, 'store'])->name('retail.orders.store');
-    Route::get('/retail/orders/{order}', [PosOrderController::class, 'show'])->name('retail.orders.show');
-    Route::get('/retail/orders/{order}/print', [PosOrderController::class, 'print'])->name('retail.orders.print');
+        Route::post('/retail/orders', [PosOrderController::class, 'store'])->name('retail.orders.store');
+        Route::get('/retail/orders/{order}', [PosOrderController::class, 'show'])->name('retail.orders.show');
+        Route::get('/retail/orders/{order}/print', [PosOrderController::class, 'print'])->name('retail.orders.print');
+    });
 
     // Manufacturing & Assembly
-    Route::get('/manufacturing/boms', [BomController::class, 'index'])->name('manufacturing.boms.index');
-    Route::get('/manufacturing/boms/create', [BomController::class, 'create'])->name('manufacturing.boms.create');
-    Route::post('/manufacturing/boms', [BomController::class, 'store'])->name('manufacturing.boms.store');
-    Route::get('/manufacturing/boms/{bom}', [BomController::class, 'show'])->name('manufacturing.boms.show');
+    Route::middleware('module:manufacturing')->group(function () {
+        Route::get('/manufacturing/boms', [BomController::class, 'index'])->name('manufacturing.boms.index');
+        Route::get('/manufacturing/boms/create', [BomController::class, 'create'])->name('manufacturing.boms.create');
+        Route::post('/manufacturing/boms', [BomController::class, 'store'])->name('manufacturing.boms.store');
+        Route::get('/manufacturing/boms/{bom}', [BomController::class, 'show'])->name('manufacturing.boms.show');
 
-    Route::get('/manufacturing/orders', [ProductionOrderController::class, 'index'])->name('manufacturing.orders.index');
-    Route::get('/manufacturing/orders/create', [ProductionOrderController::class, 'create'])->name('manufacturing.orders.create');
-    Route::post('/manufacturing/orders', [ProductionOrderController::class, 'store'])->name('manufacturing.orders.store');
-    Route::get('/manufacturing/orders/{order}', [ProductionOrderController::class, 'show'])->name('manufacturing.orders.show');
-    Route::get('/manufacturing/orders/{order}/print', [ProductionOrderController::class, 'print'])->name('manufacturing.orders.print');
-    Route::post('/manufacturing/orders/{order}/complete', [ProductionOrderController::class, 'complete'])->name('manufacturing.orders.complete');
+        Route::get('/manufacturing/orders', [ProductionOrderController::class, 'index'])->name('manufacturing.orders.index');
+        Route::get('/manufacturing/orders/create', [ProductionOrderController::class, 'create'])->name('manufacturing.orders.create');
+        Route::post('/manufacturing/orders', [ProductionOrderController::class, 'store'])->name('manufacturing.orders.store');
+        Route::get('/manufacturing/orders/{order}', [ProductionOrderController::class, 'show'])->name('manufacturing.orders.show');
+        Route::get('/manufacturing/orders/{order}/print', [ProductionOrderController::class, 'print'])->name('manufacturing.orders.print');
+        Route::post('/manufacturing/orders/{order}/complete', [ProductionOrderController::class, 'complete'])->name('manufacturing.orders.complete');
+    });
 
     // Trade & Wholesale Pricing
     Route::get('/trade/pricelists', [PriceListController::class, 'index'])->name('trade.pricelists.index');
@@ -521,13 +526,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/trade/resolve-price', [PriceListController::class, 'resolvePrice'])->name('trade.resolve-price');
 
     // Contracting Progress Claims
-    Route::get('/contracting/claims', [ContractingClaimController::class, 'index'])->name('contracting.claims.index');
-    Route::get('/contracting/claims/create', [ContractingClaimController::class, 'create'])->name('contracting.claims.create');
-    Route::post('/contracting/claims', [ContractingClaimController::class, 'store'])->name('contracting.claims.store');
-    Route::post('/contracting/claims/release-retention', [ContractingClaimController::class, 'releaseRetention'])->name('contracting.claims.release-retention');
-    Route::get('/contracting/claims/{claim}', [ContractingClaimController::class, 'show'])->name('contracting.claims.show');
-    Route::get('/contracting/claims/{claim}/print', [ContractingClaimController::class, 'print'])->name('contracting.claims.print');
-    Route::post('/contracting/claims/{claim}/bill', [ContractingClaimController::class, 'bill'])->name('contracting.claims.bill');
+    Route::middleware('module:contracting')->group(function () {
+        Route::get('/contracting/claims', [ContractingClaimController::class, 'index'])->name('contracting.claims.index');
+        Route::get('/contracting/claims/create', [ContractingClaimController::class, 'create'])->name('contracting.claims.create');
+        Route::post('/contracting/claims', [ContractingClaimController::class, 'store'])->name('contracting.claims.store');
+        Route::post('/contracting/claims/release-retention', [ContractingClaimController::class, 'releaseRetention'])->name('contracting.claims.release-retention');
+        Route::get('/contracting/claims/{claim}', [ContractingClaimController::class, 'show'])->name('contracting.claims.show');
+        Route::get('/contracting/claims/{claim}/print', [ContractingClaimController::class, 'print'])->name('contracting.claims.print');
+        Route::post('/contracting/claims/{claim}/bill', [ContractingClaimController::class, 'bill'])->name('contracting.claims.bill');
+    });
 
     // Master Data Bulk Import & Export Hub
     Route::get('/data-import', [DataImportController::class, 'index'])->name('data-import.index');
@@ -559,6 +566,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/alerts/{alert}/read', [AlertController::class, 'markAsRead'])->name('alerts.read');
     Route::post('/alerts/read-all', [AlertController::class, 'markAllAsRead'])->name('alerts.read-all');
     Route::post('/alerts/{alert}/dismiss', [AlertController::class, 'dismiss'])->name('alerts.dismiss');
+
+    // Module Feature Flags & Activation Manager
+    Route::get('/settings/modules', [ModuleController::class, 'index'])->name('settings.modules.index');
+    Route::post('/settings/modules', [ModuleController::class, 'update'])->name('settings.modules.update');
+    Route::post('/settings/modules/preset', [ModuleController::class, 'applyPreset'])->name('settings.modules.preset');
 });
 
 require __DIR__.'/settings.php';
