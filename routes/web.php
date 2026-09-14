@@ -335,6 +335,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inventory/transfers', [StockTransferController::class, 'index'])->name('inventory.transfers.index');
     Route::get('/inventory/transfers/create', [StockTransferController::class, 'create'])->name('inventory.transfers.create');
     Route::post('/inventory/transfers', [StockTransferController::class, 'store'])->name('inventory.transfers.store');
+    Route::get('/inventory/transfers/{transfer}', [StockTransferController::class, 'show'])->name('inventory.transfers.show');
+    Route::post('/inventory/transfers/{transfer}/dispatch', [StockTransferController::class, 'dispatch'])->name('inventory.transfers.dispatch');
+    Route::post('/inventory/transfers/{transfer}/receive', [StockTransferController::class, 'receive'])->name('inventory.transfers.receive');
+    Route::get('/inventory/transfers/{transfer}/print-waybill', [StockTransferController::class, 'printWaybill'])->name('inventory.transfers.print-waybill');
 
     Route::get('/inventory/adjustments', [StockAdjustmentController::class, 'index'])->name('inventory.adjustments.index');
     Route::get('/inventory/adjustments/create', [StockAdjustmentController::class, 'create'])->name('inventory.adjustments.create');

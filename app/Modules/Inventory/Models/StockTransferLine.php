@@ -19,12 +19,19 @@ class StockTransferLine extends Model
         'stock_transfer_id',
         'product_id',
         'quantity',
+        'dispatched_quantity',
+        'received_quantity',
+        'shortage_quantity',
+        'shortage_reason',
         'unit_cost',
         'line_total',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:6',
+        'dispatched_quantity' => 'decimal:6',
+        'received_quantity' => 'decimal:6',
+        'shortage_quantity' => 'decimal:6',
         'unit_cost' => 'decimal:6',
         'line_total' => 'decimal:6',
     ];
