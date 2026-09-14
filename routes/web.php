@@ -57,6 +57,7 @@ use App\Modules\Projects\Http\Controllers\ProjectController;
 use App\Modules\Purchasing\Http\Controllers\DebitNoteController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseOrderController;
 use App\Modules\Purchasing\Http\Controllers\PurchaseRequisitionController;
+use App\Modules\Purchasing\Http\Controllers\SupplierPortalController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
 use App\Modules\Purchasing\Http\Controllers\VendorPaymentController;
 use App\Modules\Retail\Http\Controllers\PosOrderController;
@@ -85,6 +86,12 @@ Route::prefix('portal/{token}')->name('portal.')->group(function () {
     Route::get('/invoices/{invoice}/xml', [CustomerPortalController::class, 'downloadInvoiceXml'])->name('invoice.xml');
 });
 
+// B2B Supplier Self-Service Portal (Public / Token-Secured)
+Route::prefix('supplier-portal/{token}')->name('supplier-portal.')->group(function () {
+    Route::get('/', [SupplierPortalController::class, 'dashboard'])->name('dashboard');
+    Route::get('/statement/export', [SupplierPortalController::class, 'exportStatement'])->name('statement.export');
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
@@ -98,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/customers', [PartyController::class, 'store'])->name('customers.store');
     Route::delete('/customers/{party}', [PartyController::class, 'destroy'])->name('customers.destroy');
     Route::post('/customers/{profile}/regenerate-portal-token', [CustomerPortalController::class, 'regenerateToken'])->name('customers.regenerate-portal-token');
+    Route::post('/vendors/{profile}/regenerate-portal-token', [SupplierPortalController::class, 'regenerateToken'])->name('vendors.regenerate-portal-token');
 
     // Accounting & Finance
     Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index');

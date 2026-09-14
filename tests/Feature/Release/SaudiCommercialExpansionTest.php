@@ -19,6 +19,9 @@ use App\Modules\Organization\Models\Company;
 use App\Modules\Payroll\Models\PayrollRun;
 use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Purchasing\Models\PurchaseOrder;
+use App\Modules\Purchasing\Models\VendorBill;
+use App\Modules\Purchasing\Models\VendorProfile;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Shared\Context\CurrentCompany;
 use App\Shared\Context\CurrentTenant;
@@ -636,4 +639,143 @@ test('saudi wage protection system wps mudad engine prevalidates compliance and 
         ->and($mudadCsvContent)->toContain('RJHI')
         ->and($mudadCsvContent)->toContain('2012345678')
         ->and($mudadCsvContent)->toContain('NCBK');
+});
+
+test('b2b supplier self-service portal provides secure digital access to purchase orders, bills and statements of account', function () {
+    // 1. Create Supplier Party
+    $supplierParty = Party::create([
+        'tenant_id' => $this->tenant->id,
+        'name' => 'Rawabi Industrial Supplies Co.',
+        'name_ar' => 'شركة روابي للتوريدات الصناعية',
+        'type' => 'vendor',
+        'tax_id' => '310987654300003',
+        'email' => 'finance@rawabi-supplies.sa',
+        'phone' => '+966114445566',
+        'status' => 'active',
+    ]);
+
+    // 2. Create VendorProfile with auto-generated portal token
+    $vendorProfile = VendorProfile::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'party_id' => $supplierParty->id,
+        'credit_limit' => 250000.00,
+        'payment_terms_days' => 45,
+        'currency' => 'SAR',
+        'is_active' => true,
+        'portal_access_enabled' => true,
+    ]);
+
+    $originalToken = $vendorProfile->portal_token;
+    expect($originalToken)->not->toBeEmpty()
+        ->and(strlen($originalToken))->toBe(48)
+        ->and($vendorProfile->portal_url)->toContain("/supplier-portal/{$originalToken}");
+
+    // 3. Create Vendor Bills
+    // Bill 1: 46,000 SAR fully paid
+    $bill1 = VendorBill::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'party_id' => $supplierParty->id,
+        'bill_number' => 'VB-2026-001',
+        'vendor_invoice_ref' => 'RAW-INV-8812',
+        'date' => '2026-08-01',
+        'due_date' => '2026-09-15',
+        'status' => 'paid',
+        'subtotal' => 40000.00,
+        'tax_rate' => 15.00,
+        'tax_amount' => 6000.00,
+        'total' => 46000.00,
+        'amount_paid' => 46000.00,
+        'balance_due' => 0.00,
+        'currency' => 'SAR',
+    ]);
+
+    // Bill 2: 23,000 SAR partially paid (10,000 paid, 13,000 balance due)
+    $bill2 = VendorBill::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'party_id' => $supplierParty->id,
+        'bill_number' => 'VB-2026-002',
+        'vendor_invoice_ref' => 'RAW-INV-8950',
+        'date' => '2026-09-01',
+        'due_date' => '2026-10-15',
+        'status' => 'partially_paid',
+        'subtotal' => 20000.00,
+        'tax_rate' => 15.00,
+        'tax_amount' => 3000.00,
+        'total' => 23000.00,
+        'amount_paid' => 10000.00,
+        'balance_due' => 13000.00,
+        'currency' => 'SAR',
+    ]);
+
+    // 4. Create Purchase Order
+    $po = PurchaseOrder::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'party_id' => $supplierParty->id,
+        'po_number' => 'PO-2026-0099',
+        'date' => '2026-09-10',
+        'expected_delivery_date' => '2026-09-30',
+        'status' => 'approved',
+        'subtotal' => 50000.00,
+        'tax_rate' => 15.00,
+        'tax_amount' => 7500.00,
+        'total' => 57500.00,
+        'currency' => 'SAR',
+    ]);
+
+    // 5. Test Admin Token Regeneration
+    $regenResp = $this->actingAs($this->user)->post(route('vendors.regenerate-portal-token', ['profile' => $vendorProfile->id]));
+    $regenResp->assertRedirect();
+    $vendorProfile->refresh();
+    $newToken = $vendorProfile->portal_token;
+    expect($newToken)->not->toBe($originalToken)
+        ->and(strlen($newToken))->toBe(48);
+
+    // 6. Test Public Supplier Portal Dashboard
+    $portalResp = $this->get(route('supplier-portal.dashboard', ['token' => $newToken]));
+    $portalResp->assertOk();
+    $portalResp->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('Portal/Supplier/Dashboard')
+        ->where('vendor.name', 'Rawabi Industrial Supplies Co.')
+        ->where('vendor.name_ar', 'شركة روابي للتوريدات الصناعية')
+        ->where('metrics.outstanding_balance', 13000)
+        ->where('metrics.total_invoiced', 69000)
+        ->where('metrics.total_paid', 56000)
+        ->where('metrics.open_orders_count', 1)
+        ->where('metrics.open_orders_value', 57500)
+        ->has('bills', 2)
+        ->has('orders', 1)
+        ->has('statement.transactions')
+    );
+
+    // 7. Test Statement CSV Export
+    $exportResp = $this->get(route('supplier-portal.statement.export', [
+        'token' => $newToken,
+        'start_date' => '2026-01-01',
+        'end_date' => '2026-12-31',
+    ]));
+    $exportResp->assertOk();
+    expect($exportResp->headers->get('content-type'))->toContain('text/csv');
+    $csvContent = $exportResp->streamedContent();
+
+    // Verify UTF-8 BOM, vendor name and bill numbers in CSV
+    expect(substr($csvContent, 0, 3))->toBe(chr(0xEF).chr(0xBB).chr(0xBF))
+        ->and($csvContent)->toContain('Rawabi Industrial Supplies Co.')
+        ->and($csvContent)->toContain('كشف حساب المورد')
+        ->and($csvContent)->toContain('VB-2026-001')
+        ->and($csvContent)->toContain('VB-2026-002');
+
+    // 8. Test Access Control: Inactive Token / Disabled Access
+    $vendorProfile->update(['portal_access_enabled' => false]);
+    $disabledResp = $this->get(route('supplier-portal.dashboard', ['token' => $newToken]));
+    $disabledResp->assertNotFound();
+
+    $invalidTokenResp = $this->get(route('supplier-portal.dashboard', ['token' => 'invalid-token-12345']));
+    $invalidTokenResp->assertNotFound();
 });

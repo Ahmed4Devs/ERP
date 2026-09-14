@@ -24,6 +24,15 @@ interface CustomerProfile {
     portal_token?: string;
 }
 
+interface VendorProfile {
+    id: string;
+    credit_limit: string;
+    payment_terms_days: number;
+    currency: string;
+    is_active: boolean;
+    portal_token?: string;
+}
+
 interface Party {
     id: string;
     name: string;
@@ -34,6 +43,7 @@ interface Party {
     phone?: string;
     status: string;
     customer_profiles?: CustomerProfile[];
+    vendor_profiles?: VendorProfile[];
 }
 
 interface PaginatedData<T> {
@@ -311,6 +321,7 @@ export default function CustomersIndex({ parties, filters }: Props) {
                             ) : (
                                 parties.data.map((party) => {
                                     const profile = party.customer_profiles?.[0];
+                                    const vendorProfile = party.vendor_profiles?.[0];
                                     return (
                                         <tr key={party.id} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-colors">
                                             <td className="px-6 py-4 font-medium text-neutral-900 dark:text-neutral-100">
@@ -336,6 +347,8 @@ export default function CustomersIndex({ parties, filters }: Props) {
                                             <td className="px-6 py-4 font-semibold text-neutral-900 dark:text-neutral-100">
                                                 {profile ? (
                                                     <span>{Number(profile.credit_limit).toLocaleString()} {profile.currency}</span>
+                                                ) : vendorProfile ? (
+                                                    <span>{Number(vendorProfile.credit_limit).toLocaleString()} {vendorProfile.currency}</span>
                                                 ) : (
                                                     <span className="text-neutral-400">—</span>
                                                 )}
@@ -367,6 +380,35 @@ export default function CustomersIndex({ parties, filters }: Props) {
                                                              >
                                                                  <a href={`/portal/${profile.portal_token}`} target="_blank" rel="noreferrer">
                                                                      <Globe className="h-4 w-4" />
+                                                                 </a>
+                                                             </Button>
+                                                         </>
+                                                     )}
+                                                     {vendorProfile?.portal_token && (
+                                                         <>
+                                                             <Button
+                                                                 variant="ghost"
+                                                                 size="icon"
+                                                                 onClick={() => {
+                                                                     const url = `${window.location.origin}/supplier-portal/${vendorProfile.portal_token}`;
+                                                                     navigator.clipboard.writeText(url);
+                                                                     setCopiedToken(vendorProfile.portal_token || null);
+                                                                     setTimeout(() => setCopiedToken(null), 2000);
+                                                                 }}
+                                                                 className="h-8 w-8 text-neutral-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50"
+                                                                 title={copiedToken === vendorProfile.portal_token ? 'تم نسخ الرابط!' : 'نسخ رابط بوابة المورد الرقمية'}
+                                                             >
+                                                                 {copiedToken === vendorProfile.portal_token ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4 text-amber-600" />}
+                                                             </Button>
+                                                             <Button
+                                                                 asChild
+                                                                 variant="ghost"
+                                                                 size="icon"
+                                                                 className="h-8 w-8 text-neutral-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50"
+                                                                 title="فتح بوابة المورد الرقمية"
+                                                             >
+                                                                 <a href={`/supplier-portal/${vendorProfile.portal_token}`} target="_blank" rel="noreferrer">
+                                                                     <Globe className="h-4 w-4 text-amber-600" />
                                                                  </a>
                                                              </Button>
                                                          </>

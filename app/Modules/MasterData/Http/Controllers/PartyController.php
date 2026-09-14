@@ -21,11 +21,18 @@ class PartyController extends Controller
         $companyId = $currentCompany->id();
 
         $parties = Party::query()
-            ->with(['customerProfiles' => function ($query) use ($companyId): void {
-                if ($companyId) {
-                    $query->where('company_id', $companyId);
-                }
-            }])
+            ->with([
+                'customerProfiles' => function ($query) use ($companyId): void {
+                    if ($companyId) {
+                        $query->where('company_id', $companyId);
+                    }
+                },
+                'vendorProfiles' => function ($query) use ($companyId): void {
+                    if ($companyId) {
+                        $query->where('company_id', $companyId);
+                    }
+                },
+            ])
             ->when($request->search, function ($query, $search): void {
                 $query->where(function ($q) use ($search): void {
                     $q->where('name', 'ilike', "%{$search}%")
@@ -41,6 +48,9 @@ class PartyController extends Controller
         $parties->through(function ($party) {
             foreach ($party->customerProfiles as $cp) {
                 $cp->ensurePortalToken();
+            }
+            foreach ($party->vendorProfiles as $vp) {
+                $vp->ensurePortalToken();
             }
 
             return $party;
