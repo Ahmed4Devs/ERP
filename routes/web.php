@@ -15,6 +15,7 @@ use App\Modules\Accounting\Http\Controllers\ReceiptController;
 use App\Modules\Accounting\Http\Controllers\ReportController;
 use App\Modules\Accounting\Http\Controllers\StatementController;
 use App\Modules\Accounting\Http\Controllers\VatReturnController;
+use App\Modules\Accounting\Http\Controllers\ZakatReportController;
 use App\Modules\Assets\Http\Controllers\DepreciationController;
 use App\Modules\Assets\Http\Controllers\FixedAssetController;
 use App\Modules\Assets\Http\Controllers\FixedAssetDisposalController;
@@ -151,6 +152,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/assets/zatca-tax-schedule', [ZatcaTaxAssetScheduleController::class, 'index'])->name('assets.zatca-tax-schedule.index');
     Route::get('/assets/zatca-tax-schedule/export', [ZatcaTaxAssetScheduleController::class, 'exportCsv'])->name('assets.zatca-tax-schedule.export');
     Route::put('/assets/zatca-tax-schedule/assets/{asset}', [ZatcaTaxAssetScheduleController::class, 'updateAssetTaxGroup'])->name('assets.zatca-tax-schedule.update-group');
+
+    // Saudi Zakat Base & Annual Liability Schedule (ZATCA Regulations)
+    Route::get('/accounting/zakat', [ZakatReportController::class, 'index'])->name('accounting.zakat.index');
+    Route::post('/accounting/zakat/post-provision', [ZakatReportController::class, 'postProvision'])->name('accounting.zakat.post-provision');
+    Route::get('/accounting/zakat/export', [ZakatReportController::class, 'export'])->name('accounting.zakat.export');
 
     // Receipts & Collections
     Route::get('/receipts', [ReceiptController::class, 'index'])->name('receipts.index');

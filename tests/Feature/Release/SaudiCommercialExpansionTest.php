@@ -4,6 +4,8 @@ use App\Models\User;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\ServiceInvoice;
+use App\Modules\Accounting\Services\PostingEngine;
+use App\Modules\Accounting\Services\ZakatCalculationService;
 use App\Modules\Assets\Models\AssetCategory;
 use App\Modules\Assets\Models\FixedAsset;
 use App\Modules\Assets\Models\FixedAssetDisposal;
@@ -778,4 +780,252 @@ test('b2b supplier self-service portal provides secure digital access to purchas
 
     $invalidTokenResp = $this->get(route('supplier-portal.dashboard', ['token' => 'invalid-token-12345']));
     $invalidTokenResp->assertNotFound();
+});
+
+test('saudi zakat base and annual liability engine calculates indirect sources method and posts gl provisions', function () {
+    $postingEngine = app(PostingEngine::class);
+
+    // 1. Create Accounts
+    $bankAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '1010'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Main Operating Bank',
+            'type' => 'asset',
+            'subtype' => 'bank',
+            'is_postable' => true,
+        ]
+    );
+
+    $capitalAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '3000'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Paid-up Share Capital',
+            'name_ar' => 'رأس المال المدفوع',
+            'type' => 'equity',
+            'subtype' => 'capital',
+            'is_postable' => true,
+        ]
+    );
+
+    $reservesAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '3100'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Statutory Reserves',
+            'name_ar' => 'الاحتياطي النظامي والأرباح المبقاة',
+            'type' => 'equity',
+            'subtype' => 'reserves',
+            'is_postable' => true,
+        ]
+    );
+
+    $eosbAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '2160'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'EOSB Indemnity Provision',
+            'name_ar' => 'مخصص مكافأة نهاية الخدمة',
+            'type' => 'liability',
+            'subtype' => 'payroll_payable',
+            'is_postable' => true,
+        ]
+    );
+
+    $loanAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '2200'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Long-term Term Loan',
+            'name_ar' => 'قرض بنكي طويل الأجل',
+            'type' => 'liability',
+            'subtype' => 'long_term_liability',
+            'is_postable' => true,
+        ]
+    );
+
+    $cwipAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '1450'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Capital Work in Progress',
+            'name_ar' => 'مشاريع رأسمالية قيد التنفيذ',
+            'type' => 'asset',
+            'subtype' => 'work_in_progress',
+            'is_postable' => true,
+        ]
+    );
+
+    $investAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '1300'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Long-term Investments',
+            'name_ar' => 'استثمارات طويلة الأجل في شركات زميلة',
+            'type' => 'asset',
+            'subtype' => 'investment',
+            'is_postable' => true,
+        ]
+    );
+
+    $revAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '4000'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Commercial Sales Revenue',
+            'type' => 'revenue',
+            'subtype' => 'operating_revenue',
+            'is_postable' => true,
+        ]
+    );
+
+    $expAcc = Account::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => '5000'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Operating Direct Expenses',
+            'type' => 'expense',
+            'subtype' => 'operating_expense',
+            'is_postable' => true,
+        ]
+    );
+
+    // 2. Post Initial Sources of Funds (Equity & Long-term Debt): 1,600,000 SAR
+    $postingEngine->post([
+        'company_id' => $this->company->id,
+        'tenant_id' => $this->tenant->id,
+        'date' => '2026-01-01',
+        'source_type' => 'opening_capital',
+        'source_id' => $this->company->id,
+        'description' => 'Opening equity, provisions, and term financing',
+        'lines' => [
+            ['account_id' => $bankAcc->id, 'debit' => '1600000.000000', 'credit' => '0.000000', 'description' => 'Funds received'],
+            ['account_id' => $capitalAcc->id, 'debit' => '0.000000', 'credit' => '1000000.000000', 'description' => 'Capital'],
+            ['account_id' => $reservesAcc->id, 'debit' => '0.000000', 'credit' => '200000.000000', 'description' => 'Reserves'],
+            ['account_id' => $eosbAcc->id, 'debit' => '0.000000', 'credit' => '100000.000000', 'description' => 'EOSB provision'],
+            ['account_id' => $loanAcc->id, 'debit' => '0.000000', 'credit' => '300000.000000', 'description' => 'Term loan'],
+        ],
+    ]);
+
+    // 3. Post Allowable Deductions (CWIP & Investments): 200,000 SAR
+    $postingEngine->post([
+        'company_id' => $this->company->id,
+        'tenant_id' => $this->tenant->id,
+        'date' => '2026-03-01',
+        'source_type' => 'capital_investments',
+        'source_id' => $this->company->id,
+        'description' => 'CWIP project payments and long-term equity investment',
+        'lines' => [
+            ['account_id' => $cwipAcc->id, 'debit' => '100000.000000', 'credit' => '0.000000', 'description' => 'CWIP building'],
+            ['account_id' => $investAcc->id, 'debit' => '100000.000000', 'credit' => '0.000000', 'description' => 'Associate company share'],
+            ['account_id' => $bankAcc->id, 'debit' => '0.000000', 'credit' => '200000.000000', 'description' => 'Bank disbursement'],
+        ],
+    ]);
+
+    // 4. Post Operational Net Profit for 2026:
+    // Revenue 500,000 SAR - Expense 300,000 SAR = Net Profit 200,000 SAR
+    $postingEngine->post([
+        'company_id' => $this->company->id,
+        'tenant_id' => $this->tenant->id,
+        'date' => '2026-06-30',
+        'source_type' => 'commercial_trading',
+        'source_id' => $this->company->id,
+        'description' => 'Operating revenues and expenses',
+        'lines' => [
+            ['account_id' => $bankAcc->id, 'debit' => '500000.000000', 'credit' => '0.000000', 'description' => 'Sales proceeds'],
+            ['account_id' => $revAcc->id, 'debit' => '0.000000', 'credit' => '500000.000000', 'description' => 'Trading Revenue'],
+        ],
+    ]);
+
+    $postingEngine->post([
+        'company_id' => $this->company->id,
+        'tenant_id' => $this->tenant->id,
+        'date' => '2026-07-15',
+        'source_type' => 'operating_costs',
+        'source_id' => $this->company->id,
+        'description' => 'Operating expenses payment',
+        'lines' => [
+            ['account_id' => $expAcc->id, 'debit' => '300000.000000', 'credit' => '0.000000', 'description' => 'Operating expenses'],
+            ['account_id' => $bankAcc->id, 'debit' => '0.000000', 'credit' => '300000.000000', 'description' => 'Bank payment'],
+        ],
+    ]);
+
+    // 5. Test Zakat Calculation Service
+    $zakatService = app(ZakatCalculationService::class);
+
+    // Test Gregorian Schedule (2.5775%)
+    // Total Sources = 1,000,000 + 200,000 + 100,000 + 300,000 + 200,000 = 1,800,000 SAR
+    // Total Deductions = 100,000 (CWIP) + 100,000 (Investments) = 200,000 SAR
+    // Net Zakat Base = 1,800,000 - 200,000 = 1,600,000 SAR
+    // Annual Zakat Due = 1,600,000 * 0.025775 = 41,240.00 SAR
+    $gregorianSchedule = $zakatService->calculateZakatSchedule($this->company->id, 2026, ['calendar_type' => 'gregorian']);
+
+    expect($gregorianSchedule['sources']['capital']['total'])->toEqual(1000000.00)
+        ->and($gregorianSchedule['sources']['reserves_and_retained']['total'])->toEqual(200000.00)
+        ->and($gregorianSchedule['sources']['provisions']['total'])->toEqual(100000.00)
+        ->and($gregorianSchedule['sources']['long_term_liabilities']['total'])->toEqual(300000.00)
+        ->and($gregorianSchedule['sources']['adjusted_profit']['total'])->toEqual(200000.00)
+        ->and($gregorianSchedule['sources']['total_sources'])->toEqual(1800000.00)
+        ->and($gregorianSchedule['deductions']['cwip']['total'])->toEqual(100000.00)
+        ->and($gregorianSchedule['deductions']['investments']['total'])->toEqual(100000.00)
+        ->and($gregorianSchedule['deductions']['statutory_fixed_assets']['total'])->toEqual(45600.00)
+        ->and($gregorianSchedule['deductions']['total_deductions'])->toEqual(245600.00)
+        ->and($gregorianSchedule['calculation']['net_zakat_base'])->toEqual(1554400.00)
+        ->and($gregorianSchedule['calculation']['annual_zakat_due'])->toEqual(40064.66)
+        ->and($gregorianSchedule['calculation']['floor_applied'])->toBeFalse();
+
+    // Test Hijri Schedule (2.5%)
+    // Annual Zakat Due (Hijri) = 1,554,400 * 0.025 = 38,860.00 SAR
+    $hijriSchedule = $zakatService->calculateZakatSchedule($this->company->id, 2026, ['calendar_type' => 'hijri']);
+    expect($hijriSchedule['calculation']['zakat_rate'])->toEqual(0.025)
+        ->and($hijriSchedule['calculation']['annual_zakat_due'])->toEqual(38860.00);
+
+    // 6. Test Deductions with Carried-forward losses
+    $lossSchedule = $zakatService->calculateZakatSchedule($this->company->id, 2026, [
+        'calendar_type' => 'hijri',
+        'carried_forward_losses' => 50000.00, // allowable up to 25% of 200k = 50,000
+    ]);
+    expect($lossSchedule['deductions']['carried_losses']['total'])->toEqual(50000.00)
+        ->and($lossSchedule['deductions']['total_deductions'])->toEqual(295600.00);
+
+    // 7. Test Web Index Endpoint
+    $indexResp = $this->actingAs($this->user)->get(route('accounting.zakat.index', ['tax_year' => 2026]));
+    $indexResp->assertOk();
+    $indexResp->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('Accounting/Zakat/Index')
+        ->where('taxYear', 2026)
+        ->where('schedule.sources.total_sources', 1800000)
+        ->where('schedule.calculation.net_zakat_base', 1554400)
+        ->where('schedule.calculation.annual_zakat_due', 40064.66)
+    );
+
+    // 8. Test Posting Zakat Provision to General Ledger
+    $postResp = $this->actingAs($this->user)->post(route('accounting.zakat.post-provision'), [
+        'tax_year' => 2026,
+        'calendar_type' => 'gregorian',
+        'amount' => 40064.66,
+    ]);
+    $postResp->assertRedirect();
+    $postResp->assertSessionHas('success');
+
+    // Verify Expense Account 5150 and Provision Account 2060
+    $zakatExpenseAcc = Account::where('company_id', $this->company->id)->where('code', '5150')->firstOrFail();
+    $zakatProvisionAcc = Account::where('company_id', $this->company->id)->where('code', '2060')->firstOrFail();
+
+    $recalculatedSchedule = $zakatService->calculateZakatSchedule($this->company->id, 2026, ['calendar_type' => 'gregorian']);
+    expect($recalculatedSchedule['calculation']['existing_provision_balance'])->toEqual(40064.66)
+        ->and($recalculatedSchedule['calculation']['recommended_adjustment'])->toEqual(0.00);
+
+    // 9. Test CSV Export Endpoint
+    $exportResp = $this->actingAs($this->user)->get(route('accounting.zakat.export', ['tax_year' => 2026]));
+    $exportResp->assertOk();
+    expect($exportResp->headers->get('content-type'))->toContain('text/csv');
+    $csvOutput = $exportResp->streamedContent();
+
+    expect(substr($csvOutput, 0, 3))->toBe(chr(0xEF).chr(0xBB).chr(0xBF))
+        ->and($csvOutput)->toContain('الوعاء الزكوي')
+        ->and($csvOutput)->toContain('رأس المال المدفوع')
+        ->and($csvOutput)->toContain('1000000.00')
+        ->and($csvOutput)->toContain('ZATCA');
 });
