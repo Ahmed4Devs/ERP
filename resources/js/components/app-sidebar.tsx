@@ -504,6 +504,11 @@ export function AppSidebar() {
                     moduleKey: 'sales',
                 },
                 {
+                    title: t('nav.deliveryDispatch', 'جدولة التوزيع وأسطول النقل'),
+                    href: '/trade/dispatch',
+                    icon: Truck,
+                },
+                {
                     title: t('nav.manufacturingBoms', 'قوائم المواد (BOM)'),
                     href: '/manufacturing/boms',
                     icon: Factory,

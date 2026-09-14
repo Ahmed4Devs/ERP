@@ -73,6 +73,7 @@ use App\Modules\Sales\Http\Controllers\SalesOrderController;
 use App\Modules\Sales\Http\Controllers\SalesQuotationController;
 use App\Modules\Support\Http\Controllers\SupportTicketController;
 use App\Modules\Trade\Http\Controllers\CommissionController;
+use App\Modules\Trade\Http\Controllers\DispatchController;
 use App\Modules\Trade\Http\Controllers\PriceListController;
 use App\Modules\Trade\Http\Controllers\PromotionController;
 use App\Modules\Treasury\Http\Controllers\BankGuaranteeController;
@@ -588,6 +589,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/retail/loyalty/accounts/{account}/adjust', [LoyaltyController::class, 'adjustPoints'])->name('retail.loyalty.adjust');
     Route::post('/retail/loyalty/calculate', [LoyaltyController::class, 'calculateRedemption'])->name('retail.loyalty.calculate');
     Route::get('/retail/loyalty/accounts/{account}/card-print', [LoyaltyController::class, 'cardPrint'])->name('retail.loyalty.card-print');
+
+    // Delivery Fleet Dispatch Planning & Proof of Delivery (POD)
+    Route::get('/trade/dispatch', [DispatchController::class, 'index'])->name('trade.dispatch.index');
+    Route::get('/trade/dispatch/create', [DispatchController::class, 'create'])->name('trade.dispatch.create');
+    Route::post('/trade/dispatch', [DispatchController::class, 'store'])->name('trade.dispatch.store');
+    Route::get('/trade/dispatch/trips/{trip}', [DispatchController::class, 'show'])->name('trade.dispatch.show');
+    Route::post('/trade/dispatch/trips/{trip}/dispatch', [DispatchController::class, 'dispatchTrip'])->name('trade.dispatch.dispatch');
+    Route::post('/trade/dispatch/stops/{stop}/pod', [DispatchController::class, 'recordPod'])->name('trade.dispatch.record-pod');
+    Route::post('/trade/dispatch/trips/{trip}/settle-cod', [DispatchController::class, 'settleCod'])->name('trade.dispatch.settle-cod');
+    Route::get('/trade/dispatch/trips/{trip}/manifest', [DispatchController::class, 'printManifest'])->name('trade.dispatch.manifest');
+    Route::post('/trade/dispatch/vehicles', [DispatchController::class, 'storeVehicle'])->name('trade.dispatch.vehicles.store');
+    Route::post('/trade/dispatch/drivers', [DispatchController::class, 'storeDriver'])->name('trade.dispatch.drivers.store');
 
     // Contracting Progress Claims
     Route::middleware('module:contracting')->group(function () {
