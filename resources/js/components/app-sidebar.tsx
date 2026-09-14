@@ -135,6 +135,16 @@ export function AppSidebar() {
                     href: '/sales/credit-notes',
                     icon: RotateCcw,
                 },
+                {
+                    title: t('nav.priceLists', 'قوائم الأسعار وشرائح الجملة'),
+                    href: '/trade/pricelists',
+                    icon: BadgeDollarSign,
+                },
+                {
+                    title: t('nav.promotions', 'العروض والخصومات الترويجية'),
+                    href: '/trade/promotions',
+                    icon: Percent,
+                },
             ],
         },
         {

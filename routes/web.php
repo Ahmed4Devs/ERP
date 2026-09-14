@@ -72,6 +72,7 @@ use App\Modules\Sales\Http\Controllers\SalesOrderController;
 use App\Modules\Sales\Http\Controllers\SalesQuotationController;
 use App\Modules\Support\Http\Controllers\SupportTicketController;
 use App\Modules\Trade\Http\Controllers\PriceListController;
+use App\Modules\Trade\Http\Controllers\PromotionController;
 use App\Modules\Treasury\Http\Controllers\BankGuaranteeController;
 use App\Modules\Treasury\Http\Controllers\ChequeController;
 use App\Modules\Treasury\Http\Controllers\TreasuryTransferController;
@@ -199,6 +200,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/purchasing/debit-notes/{debitNote}', [DebitNoteController::class, 'show'])->name('purchasing.debit-notes.show');
     Route::post('/purchasing/debit-notes/{debitNote}/post', [DebitNoteController::class, 'post'])->name('purchasing.debit-notes.post');
     Route::get('/purchasing/debit-notes/{debitNote}/print', [DebitNoteController::class, 'print'])->name('purchasing.debit-notes.print');
+
+    // Trade Pricing & Promotions Engine
+    Route::get('/trade/pricelists', [PriceListController::class, 'index'])->name('trade.pricelists.index');
+    Route::get('/trade/pricelists/create', [PriceListController::class, 'create'])->name('trade.pricelists.create');
+    Route::post('/trade/pricelists', [PriceListController::class, 'store'])->name('trade.pricelists.store');
+    Route::get('/trade/pricelists/{priceList}', [PriceListController::class, 'show'])->name('trade.pricelists.show');
+    Route::post('/trade/pricelists/resolve', [PriceListController::class, 'resolvePrice'])->name('trade.pricelists.resolve');
+
+    Route::get('/trade/promotions', [PromotionController::class, 'index'])->name('trade.promotions.index');
+    Route::get('/trade/promotions/create', [PromotionController::class, 'create'])->name('trade.promotions.create');
+    Route::post('/trade/promotions', [PromotionController::class, 'store'])->name('trade.promotions.store');
+    Route::post('/trade/promotions/{promotion}/toggle', [PromotionController::class, 'toggleStatus'])->name('trade.promotions.toggle');
+    Route::delete('/trade/promotions/{promotion}', [PromotionController::class, 'destroy'])->name('trade.promotions.destroy');
+    Route::post('/trade/promotions/evaluate', [PromotionController::class, 'evaluate'])->name('trade.promotions.evaluate');
 
     // Treasury Transfers
     Route::get('/treasury/transfers', [TreasuryTransferController::class, 'index'])->name('treasury.transfers.index');
