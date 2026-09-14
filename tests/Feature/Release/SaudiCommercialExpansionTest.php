@@ -16,6 +16,8 @@ use App\Modules\MasterData\Models\CustomerProfile;
 use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
 use App\Modules\Organization\Models\Company;
+use App\Modules\Payroll\Models\PayrollRun;
+use App\Modules\Payroll\Models\Payslip;
 use App\Modules\Platform\Models\Tenant;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Shared\Context\CurrentCompany;
@@ -457,4 +459,181 @@ test('zatca statutory asset tax depreciation and zakat schedule engine computes 
     expect($csvContent)->toContain('المجموعة الأولى')
         ->and($csvContent)->toContain('المجموعة الثالثة')
         ->and($csvContent)->toContain('المادة 17');
+});
+
+test('saudi wage protection system wps mudad engine prevalidates compliance and generates valid sama sif and mudad csv files', function () {
+    $dept = Department::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => 'OPS'],
+        ['tenant_id' => $this->tenant->id, 'name' => 'Operations']
+    );
+    $desig = Designation::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => 'CLERK'],
+        ['tenant_id' => $this->tenant->id, 'title' => 'Clerk']
+    );
+
+    // 1. Create compliant employee (Al Rajhi Bank SA...80...)
+    $emp1 = Employee::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'department_id' => $dept->id,
+        'designation_id' => $desig->id,
+        'employee_number' => 'EMP-WPS-01',
+        'first_name' => 'Tariq',
+        'last_name' => 'Al-Ghamdi',
+        'national_id' => '1088776655', // Valid 10 digits
+        'iban' => 'SA0380000000608010167519', // Valid Al Rajhi IBAN (code 80 -> RJHI)
+        'bank_name' => 'Al Rajhi Bank',
+        'hire_date' => '2024-01-01',
+        'status' => 'active',
+        'basic_salary' => 8000.00,
+        'housing_allowance' => 2000.00,
+    ]);
+
+    // 2. Create employee with invalid national ID & IBAN
+    $emp2 = Employee::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'department_id' => $dept->id,
+        'designation_id' => $desig->id,
+        'employee_number' => 'EMP-WPS-02',
+        'first_name' => 'John',
+        'last_name' => 'Doe',
+        'national_id' => '12345', // INVALID: not 10 digits
+        'iban' => 'SA9999', // INVALID: not 24 digits
+        'bank_name' => 'Unknown',
+        'hire_date' => '2024-02-01',
+        'status' => 'active',
+        'basic_salary' => 5000.00,
+        'housing_allowance' => 1000.00,
+    ]);
+
+    // 3. Create Payroll Run
+    $payrollRun = PayrollRun::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'run_number' => 'PR-2026-09-WPS',
+        'period_year' => 2026,
+        'period_month' => 9,
+        'payment_date' => '2026-09-27',
+        'total_basic' => 13000.00,
+        'total_allowances' => 3500.00,
+        'total_deductions' => 1000.00,
+        'total_net' => 15500.00,
+        'status' => 'approved',
+    ]);
+
+    // Compliant payslip for emp1:
+    // (8000 + 2000 + 500) - 1000 = 9500 net
+    $slip1 = Payslip::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'payroll_run_id' => $payrollRun->id,
+        'employee_id' => $emp1->id,
+        'basic_salary' => 8000.00,
+        'housing_allowance' => 2000.00,
+        'transport_allowance' => 500.00,
+        'other_allowances' => 0.00,
+        'overtime_amount' => 0.00,
+        'gross_salary' => 10500.00,
+        'gosi_contributory_wage' => 10000.00,
+        'social_insurance_deduction' => 1000.00,
+        'employer_gosi_contribution' => 1200.00,
+        'other_deductions' => 0.00,
+        'total_deductions' => 1000.00,
+        'net_salary' => 9500.00,
+        'status' => 'approved',
+    ]);
+
+    // Non-compliant payslip for emp2 (also arithmetic mismatch)
+    $slip2 = Payslip::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'payroll_run_id' => $payrollRun->id,
+        'employee_id' => $emp2->id,
+        'basic_salary' => 5000.00,
+        'housing_allowance' => 1000.00,
+        'transport_allowance' => 0.00,
+        'other_allowances' => 0.00,
+        'overtime_amount' => 0.00,
+        'gross_salary' => 6000.00,
+        'gosi_contributory_wage' => 6000.00,
+        'social_insurance_deduction' => 0.00,
+        'employer_gosi_contribution' => 0.00,
+        'other_deductions' => 0.00,
+        'total_deductions' => 0.00,
+        'net_salary' => 4000.00, // mismatch: 6000 - 0 != 4000
+        'status' => 'approved',
+    ]);
+
+    // 4. Test pre-validation via Service and API endpoint
+    $validateResp = $this->actingAs($this->user)->get(route('payroll.runs.wps-validate', ['payrollRun' => $payrollRun->id]));
+    $validateResp->assertOk();
+    $validationData = $validateResp->json();
+
+    expect($validationData['is_compliant'])->toBeFalse()
+        ->and($validationData['compliance_rate'])->toEqual(50)
+        ->and($validationData['compliant_count'])->toBe(1)
+        ->and($validationData['non_compliant_count'])->toBe(1)
+        ->and(count($validationData['issues']))->toBeGreaterThanOrEqual(2); // ID, IBAN, arithmetic
+
+    // 5. Correct Employee 2 and Slip 2
+    $emp2->update([
+        'national_id' => '2012345678', // Valid 10-digit Iqama
+        'iban' => 'SA4410000001234567890123', // Valid SNB IBAN (code 10 -> NCBK)
+    ]);
+    $slip2->update([
+        'net_salary' => 6000.00, // 6000 - 0 = 6000 matches!
+    ]);
+
+    // Re-validate: now 100% compliant!
+    $revalidateResp = $this->actingAs($this->user)->get(route('payroll.runs.wps-validate', ['payrollRun' => $payrollRun->id]));
+    $revalidateResp->assertOk();
+    $revalidatedData = $revalidateResp->json();
+
+    expect($revalidatedData['is_compliant'])->toBeTrue()
+        ->and($revalidatedData['compliance_rate'])->toEqual(100)
+        ->and($revalidatedData['compliant_count'])->toBe(2)
+        ->and($revalidatedData['non_compliant_count'])->toBe(0)
+        ->and($revalidatedData['issues'])->toBeEmpty();
+
+    // 6. Test Show Page contains WPS Validation Prop
+    $showResp = $this->actingAs($this->user)->get(route('payroll.runs.show', ['payrollRun' => $payrollRun->id]));
+    $showResp->assertOk();
+    $showResp->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('Payroll/Runs/Show')
+        ->where('payrollRun.id', $payrollRun->id)
+        ->where('wpsValidation.is_compliant', true)
+        ->where('wpsValidation.compliance_rate', 100)
+    );
+
+    // 7. Test SAMA SIF File Download
+    $sifResp = $this->actingAs($this->user)->get(route('payroll.runs.wps-sif', ['payrollRun' => $payrollRun->id]));
+    $sifResp->assertOk();
+    expect($sifResp->headers->get('content-type'))->toContain('text/plain');
+    $sifContent = $sifResp->streamedContent();
+
+    // SIF Header Record (SCR)
+    expect($sifContent)->toContain('SCR,')
+        ->and($sifContent)->toContain(',202609,'); // Salary Month
+
+    // Employee 1 Details (EDR) with RJHI bank code and exact IBAN
+    expect($sifContent)->toContain('EDR,1088776655,Tariq Al-Ghamdi,RJHI,SA0380000000608010167519,8000.00,2000.00,500.00,1000.00,9500.00');
+
+    // Employee 2 Details (EDR) with NCBK bank code (from SNB IBAN prefix 10)
+    expect($sifContent)->toContain('EDR,2012345678,John Doe,NCBK,SA4410000001234567890123,5000.00,1000.00,0.00,0.00,6000.00');
+
+    // 8. Test Mudad CSV Download
+    $csvResp = $this->actingAs($this->user)->get(route('payroll.runs.wps-csv', ['payrollRun' => $payrollRun->id]));
+    $csvResp->assertOk();
+    expect($csvResp->headers->get('content-type'))->toContain('text/csv');
+    $mudadCsvContent = $csvResp->streamedContent();
+
+    // Check UTF-8 BOM
+    expect(substr($mudadCsvContent, 0, 3))->toBe(chr(0xEF).chr(0xBB).chr(0xBF))
+        ->and($mudadCsvContent)->toContain('1088776655')
+        ->and($mudadCsvContent)->toContain('RJHI')
+        ->and($mudadCsvContent)->toContain('2012345678')
+        ->and($mudadCsvContent)->toContain('NCBK');
 });

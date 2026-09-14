@@ -1,6 +1,21 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, BadgeDollarSign, BookOpen, CheckCircle, CreditCard, DollarSign, Download, Printer, Send } from 'lucide-react';
+import {
+    AlertCircle,
+    AlertTriangle,
+    ArrowLeft,
+    ArrowRight,
+    BadgeDollarSign,
+    BookOpen,
+    CheckCircle,
+    CreditCard,
+    DollarSign,
+    Download,
+    FileSpreadsheet,
+    Printer,
+    Send,
+    ShieldCheck,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/i18n';
 
@@ -10,6 +25,30 @@ interface BankAccount {
     name: string;
     name_ar?: string;
     current_balance: string;
+}
+
+interface WpsIssue {
+    employee_id: string;
+    employee_number: string;
+    employee_name: string;
+    type: string;
+    message: string;
+}
+
+interface WpsValidation {
+    is_compliant: boolean;
+    compliance_rate: number;
+    total_employees: number;
+    compliant_count: number;
+    non_compliant_count: number;
+    issues: WpsIssue[];
+    totals: {
+        total_basic: number;
+        total_housing: number;
+        total_other: number;
+        total_deductions: number;
+        total_net: number;
+    };
 }
 
 interface Employee {
@@ -86,14 +125,16 @@ interface PayrollRun {
 interface Props {
     payrollRun: PayrollRun;
     bankAccounts: BankAccount[];
+    wpsValidation?: WpsValidation;
 }
 
-export default function ShowPayrollRun({ payrollRun, bankAccounts }: Props) {
+export default function ShowPayrollRun({ payrollRun, bankAccounts, wpsValidation }: Props) {
     const { t, isRtl } = useTranslation();
     const [selectedBankId, setSelectedBankId] = useState(bankAccounts[0]?.id || '');
     const [isPosting, setIsPosting] = useState(false);
     const [isDisbursing, setIsDisbursing] = useState(false);
     const [showDisburseModal, setShowDisburseModal] = useState(false);
+    const [showWpsDetails, setShowWpsDetails] = useState(false);
 
     const handlePostRun = () => {
         if (confirm('Confirm posting payroll run to General Ledger? This will record expense and liability accounts.')) {
@@ -191,6 +232,90 @@ export default function ShowPayrollRun({ payrollRun, bankAccounts }: Props) {
                     )}
                 </div>
             </div>
+
+            {/* Mudad / WPS Compliance Audit Card */}
+            {wpsValidation && (
+                <div className={`rounded-xl border p-4 shadow-sm transition-all ${
+                    wpsValidation.is_compliant
+                        ? 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20'
+                        : 'border-amber-200 bg-amber-50/40 dark:border-amber-900/40 dark:bg-amber-950/20'
+                }`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${
+                                wpsValidation.is_compliant
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300'
+                            }`}>
+                                {wpsValidation.is_compliant ? (
+                                    <ShieldCheck className="h-6 w-6" />
+                                ) : (
+                                    <AlertTriangle className="h-6 w-6" />
+                                )}
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="font-bold text-sm text-neutral-900 dark:text-neutral-100">
+                                        {isRtl ? 'فحص الامتثال لنظام حماية الأجور (مَدَد / البنك المركزي SAMA)' : 'Mudad & SAMA Wages Protection System (WPS) Audit'}
+                                    </h2>
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                        wpsValidation.is_compliant
+                                            ? 'bg-emerald-200/80 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
+                                            : 'bg-amber-200/80 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                                    }`}>
+                                        {wpsValidation.compliance_rate}% {isRtl ? 'جاهزية' : 'Compliant'}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                                    {wpsValidation.is_compliant
+                                        ? (isRtl ? `جميع الموظفين (${wpsValidation.compliant_count}) مستوفون لشروط الهوية الوطنية/الإقامة والآيبان وتوازن الرواتب بدون أي ملاحظات.` : `All ${wpsValidation.compliant_count} employees meet SAMA & Mudad requirements (National ID/Iqama, IBAN, and reconciled net pay).`)
+                                        : (isRtl ? `يوجد ${wpsValidation.non_compliant_count} موظفاً بحاجة لتصحيح البيانات البنكية أو الحسابية قبل رفع الملف لمَدَد أو البنك.` : `${wpsValidation.non_compliant_count} employee(s) have data or IBAN issues that may cause rejection in Mudad or corporate banking.`)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {wpsValidation.issues.length > 0 && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowWpsDetails(!showWpsDetails)}
+                                    className="text-xs font-semibold border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300"
+                                >
+                                    {showWpsDetails ? (isRtl ? 'إخفاء الملاحظات' : 'Hide Issues') : (isRtl ? `عرض الملاحظات (${wpsValidation.issues.length})` : `View Issues (${wpsValidation.issues.length})`)}
+                                </Button>
+                            )}
+                            <a href={`/payroll/runs/${payrollRun.id}/wps/sif`} target="_blank" rel="noreferrer">
+                                <Button size="sm" variant="outline" className="gap-1 text-xs font-medium border-neutral-300 dark:border-neutral-700">
+                                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+                                    <span>{isRtl ? 'تحميل SIF' : 'Download SIF'}</span>
+                                </Button>
+                            </a>
+                        </div>
+                    </div>
+
+                    {showWpsDetails && wpsValidation.issues.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-amber-200/70 dark:border-amber-800/50 space-y-2">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+                                {isRtl ? 'الملاحظات والتحذيرات المطلوب تصحيحها:' : 'Issues detected that require resolution:'}
+                            </h4>
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                {wpsValidation.issues.map((issue, idx) => (
+                                    <div key={idx} className="flex items-start gap-2 text-xs bg-white/80 dark:bg-neutral-900/80 p-2.5 rounded-lg border border-amber-100 dark:border-amber-900/30">
+                                        <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                                        <div className="flex-1">
+                                            <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                                                {issue.employee_name} ({issue.employee_number}):
+                                            </span>{' '}
+                                            <span className="text-neutral-700 dark:text-neutral-300">{issue.message}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">

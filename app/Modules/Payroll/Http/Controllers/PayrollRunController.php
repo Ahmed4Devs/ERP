@@ -14,6 +14,7 @@ use App\Modules\Payroll\Services\PostPayrollRunAction;
 use App\Modules\Payroll\Services\WpsFileGeneratorService;
 use App\Shared\Context\CurrentCompany;
 use App\Shared\Context\CurrentTenant;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -67,7 +68,7 @@ class PayrollRunController extends Controller
         return redirect()->route('payroll.runs.show', $run->id)->with('success', "Payroll run {$run->run_number} generated successfully.");
     }
 
-    public function show(PayrollRun $payrollRun): Response
+    public function show(PayrollRun $payrollRun, WpsFileGeneratorService $wpsService): Response
     {
         $companyId = app(CurrentCompany::class)->id();
 
@@ -84,10 +85,23 @@ class PayrollRunController extends Controller
             })
             ->get(['id', 'code', 'name', 'name_ar', 'current_balance']);
 
+        $wpsValidation = $wpsService->validatePayrollRun($payrollRun);
+
         return Inertia::render('Payroll/Runs/Show', [
             'payrollRun' => $payrollRun,
             'bankAccounts' => $bankAccounts,
+            'wpsValidation' => $wpsValidation,
         ]);
+    }
+
+    public function validateWps(PayrollRun $payrollRun, WpsFileGeneratorService $wpsService): JsonResponse
+    {
+        $companyId = app(CurrentCompany::class)->id();
+        if ($payrollRun->company_id !== $companyId) {
+            abort(403);
+        }
+
+        return response()->json($wpsService->validatePayrollRun($payrollRun));
     }
 
     public function postRun(PayrollRun $payrollRun, PostPayrollRunAction $action): RedirectResponse

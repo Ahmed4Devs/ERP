@@ -384,6 +384,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payroll/payslips/{payslip}/print', [PayrollRunController::class, 'printPayslip'])->name('payroll.payslips.print');
     Route::get('/payroll/runs/{payrollRun}/wps/sif', [PayrollRunController::class, 'downloadWpsSif'])->name('payroll.runs.wps-sif');
     Route::get('/payroll/runs/{payrollRun}/wps/csv', [PayrollRunController::class, 'downloadWpsCsv'])->name('payroll.runs.wps-csv');
+    Route::get('/payroll/runs/{payrollRun}/wps/validate', [PayrollRunController::class, 'validateWps'])->name('payroll.runs.wps-validate');
     Route::get('/payroll/gosi', [GosiReportController::class, 'index'])->name('payroll.gosi.index');
     Route::get('/payroll/gosi/export', [GosiReportController::class, 'export'])->name('payroll.gosi.export');
     Route::post('/payroll/gosi/{payrollRun}/post-employer', [GosiReportController::class, 'postEmployerContribution'])->name('payroll.gosi.post-employer');
