@@ -2,6 +2,10 @@
 
 use App\Models\User;
 use App\Modules\Accounting\Models\Account;
+use App\Modules\Accounting\Models\CurrencyExchangeRate;
+use App\Modules\Accounting\Models\FxRevaluation;
+use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Models\JournalEntryLine;
 use App\Modules\Contracting\Models\ContractingClaim;
 use App\Modules\Inventory\Models\GoodsReceipt;
 use App\Modules\Inventory\Models\GoodsReceiptLine;
@@ -371,5 +375,224 @@ test('it processes Saudi contracting milestone progress claim with advance recov
             ->component('Contracting/Claims/Print')
             ->has('amountInWords.ar')
             ->has('qrCodeDataUri')
+        );
+});
+
+test('it synchronizes official SAMA daily FX rates, performs statutory conversions, and executes period-end multi-currency revaluation with automatic journal entries and reversal', function () {
+    $today = now()->toDateString();
+
+    // 1. Synchronize SAMA official exchange rates via POST
+    $syncResponse = $this->actingAs($this->user)
+        ->post(route('accounting.fx-rates.sync-sama'), [
+            'effective_date' => $today,
+        ]);
+
+    $syncResponse->assertRedirect();
+
+    // Verify all 13 official SAMA currencies were created for the company
+    $ratesCount = CurrencyExchangeRate::where('company_id', $this->company->id)
+        ->where('effective_date', $today)
+        ->where('source', 'LIKE', '%SAMA%')
+        ->count();
+
+    expect($ratesCount)->toBe(13);
+
+    // Verify statutory peg: USD is strictly 3.750000
+    $usdRate = CurrencyExchangeRate::where('company_id', $this->company->id)
+        ->where('from_currency', 'USD')
+        ->where('effective_date', $today)
+        ->first();
+
+    expect($usdRate)->not->toBeNull()
+        ->and((float) $usdRate->rate)->toBe(3.750000)
+        ->and($usdRate->source)->toContain('SAMA');
+
+    // Verify GCC currencies (e.g. AED, KWD, BHD)
+    $aedRate = CurrencyExchangeRate::where('company_id', $this->company->id)
+        ->where('from_currency', 'AED')
+        ->first();
+    expect($aedRate)->not->toBeNull()
+        ->and((float) $aedRate->rate)->toBeGreaterThan(1.0);
+
+    // 2. Test Live Currency Conversion Endpoint
+    // Convert $1,000 USD to SAR -> should be exactly 3,750 SAR
+    $convertUsdToSarResponse = $this->actingAs($this->user)
+        ->postJson(route('accounting.fx-rates.convert'), [
+            'amount' => 1000.0,
+            'from_currency' => 'USD',
+            'to_currency' => 'SAR',
+            'effective_date' => $today,
+        ]);
+
+    $convertUsdToSarResponse->assertOk()
+        ->assertJson([
+            'from_currency' => 'USD',
+            'to_currency' => 'SAR',
+            'original_amount' => 1000.0,
+            'converted_amount' => 3750.0,
+            'exchange_rate' => 3.75,
+            'is_statutory_peg' => true,
+        ]);
+
+    // Convert 3,750 SAR back to USD -> should be exactly 1,000 USD
+    $convertSarToUsdResponse = $this->actingAs($this->user)
+        ->postJson(route('accounting.fx-rates.convert'), [
+            'amount' => 3750.0,
+            'from_currency' => 'SAR',
+            'to_currency' => 'USD',
+            'effective_date' => $today,
+        ]);
+
+    $convertSarToUsdResponse->assertOk()
+        ->assertJson([
+            'from_currency' => 'SAR',
+            'to_currency' => 'USD',
+            'original_amount' => 3750.0,
+            'converted_amount' => 1000.0,
+            'is_statutory_peg' => true,
+        ]);
+
+    // 3. Setup Foreign Currency Account for Period-End Revaluation
+    // Create foreign currency bank account (USD Treasury Account)
+    $usdBankAccount = Account::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'code' => '1118',
+        'name' => 'USD Treasury Clearing Account',
+        'name_ar' => 'حساب جاري الخزينة بالدولار الأمريكي',
+        'type' => 'asset',
+        'subtype' => 'cash_and_equivalents',
+        'currency' => 'USD',
+        'current_balance' => 10000.00, // $10,000 USD
+        'is_postable' => true,
+    ]);
+
+    // Record historical journal entry representing deposit at historical rate (3.70 SAR)
+    // Book SAR amount = 37,000 SAR
+    $openingEntry = JournalEntry::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'entry_number' => 'JV-OPEN-USD-001',
+        'date' => now()->subMonth()->toDateString(),
+        'description' => 'إيداع رصيد أجنبي بالدولار الأمريكي',
+        'status' => 'posted',
+    ]);
+
+    JournalEntryLine::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'journal_entry_id' => $openingEntry->id,
+        'account_id' => $usdBankAccount->id,
+        'debit' => 37000.00, // Historical rate = 3.70 SAR/USD
+        'credit' => 0.00,
+        'currency' => 'USD',
+        'foreign_amount' => 10000.00,
+        'description' => 'إيداع 10,000 دولار بسعر تاريخي 3.70',
+    ]);
+
+    // Counterpart line to keep opening entry balanced
+    $capitalAccount = Account::where('company_id', $this->company->id)->where('type', 'equity')->first()
+        ?? Account::create([
+            'tenant_id' => $this->tenant->id,
+            'company_id' => $this->company->id,
+            'code' => '3100',
+            'name' => 'Share Capital',
+            'name_ar' => 'رأس المال',
+            'type' => 'equity',
+            'subtype' => 'capital',
+            'is_postable' => true,
+        ]);
+
+    JournalEntryLine::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'journal_entry_id' => $openingEntry->id,
+        'account_id' => $capitalAccount->id,
+        'debit' => 0.00,
+        'credit' => 37000.00,
+        'currency' => 'SAR',
+        'description' => 'مقابل إيداع رأس المال',
+    ]);
+
+    // 4. Execute Period-End FX Revaluation
+    // Closing SAMA rate is 3.750000
+    // Revalued amount = 10,000 * 3.75 = 37,500 SAR
+    // Historical book amount = 37,000 SAR
+    // Unrealized FX Gain = +500 SAR
+    $revalResponse = $this->actingAs($this->user)
+        ->post(route('accounting.fx-revaluations.store'), [
+            'date' => $today,
+            'notes' => 'إعادة تقييم نهاية الربع المالي وفق نشرة أسعار الصرف الرسمية للبنك المركزي السعودي',
+        ]);
+
+    $revalResponse->assertRedirect();
+
+    $revaluation = FxRevaluation::where('company_id', $this->company->id)
+        ->latest('date')
+        ->first();
+
+    expect($revaluation)->not->toBeNull()
+        ->and($revaluation->status)->toBe('posted')
+        ->and((float) $revaluation->total_gain)->toBe(500.0)
+        ->and((float) $revaluation->total_loss)->toBe(0.0)
+        ->and((float) $revaluation->net_adjustment)->toBe(500.0);
+
+    // Verify automated Journal Entry (JV-FX-...)
+    $revalJv = $revaluation->journalEntry;
+    expect($revalJv)->not->toBeNull()
+        ->and($revalJv->status)->toBe('posted');
+
+    // Verify Debit Account 1118 (USD Account) 500 SAR, Credit Account 4400 (Unrealized Gain) 500 SAR
+    $lines = $revalJv->lines;
+    expect($lines->count())->toBe(2);
+
+    $debitLine = $lines->where('account_id', $usdBankAccount->id)->first();
+    expect($debitLine)->not->toBeNull()
+        ->and((float) $debitLine->debit)->toBe(500.0)
+        ->and((float) $debitLine->credit)->toBe(0.0);
+
+    $gainAccount = Account::where('company_id', $this->company->id)->where('code', '4400')->first();
+    $creditLine = $lines->where('account_id', $gainAccount->id)->first();
+    expect($creditLine)->not->toBeNull()
+        ->and((float) $creditLine->debit)->toBe(0.0)
+        ->and((float) $creditLine->credit)->toBe(500.0);
+
+    // 5. Test Automated Reversal of FX Revaluation at Period Opening
+    $reversalDate = now()->addDay()->toDateString();
+    $reverseResponse = $this->actingAs($this->user)
+        ->post(route('accounting.fx-revaluations.reverse', $revaluation->id), [
+            'reversal_date' => $reversalDate,
+        ]);
+
+    $reverseResponse->assertRedirect();
+    $revaluation->refresh();
+
+    expect($revaluation->status)->toBe('reversed')
+        ->and($revaluation->reversal_journal_entry_id)->not->toBeNull();
+
+    $reversalJv = $revaluation->reversalJournalEntry;
+    expect($reversalJv)->not->toBeNull()
+        ->and($reversalJv->status)->toBe('posted');
+
+    // Inverted lines: Credit Account 1118 for 500 SAR, Debit Account 4400 for 500 SAR
+    $revLines = $reversalJv->lines;
+    $revDebitGain = $revLines->where('account_id', $gainAccount->id)->first();
+    $revCreditBank = $revLines->where('account_id', $usdBankAccount->id)->first();
+
+    expect($revDebitGain)->not->toBeNull()
+        ->and((float) $revDebitGain->debit)->toBe(500.0)
+        ->and($revCreditBank)->not->toBeNull()
+        ->and((float) $revCreditBank->credit)->toBe(500.0);
+
+    // 6. Verify Inertia Index Page Props and UI components
+    $indexResponse = $this->actingAs($this->user)
+        ->get(route('accounting.fx-rates.index'));
+
+    $indexResponse->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Accounting/FxRates/Index')
+            ->has('samaCurrencies')
+            ->has('latestRates')
+            ->where('isSamaSyncedToday', true)
         );
 });

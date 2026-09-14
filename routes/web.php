@@ -243,6 +243,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Multi-Currency Exchange Rates & Foreign Exchange Revaluation (Phase 4)
     Route::get('/accounting/fx-rates', [CurrencyRateController::class, 'index'])->name('accounting.fx-rates.index');
     Route::post('/accounting/fx-rates', [CurrencyRateController::class, 'store'])->name('accounting.fx-rates.store');
+    Route::post('/accounting/fx-rates/sync-sama', [CurrencyRateController::class, 'syncSama'])->name('accounting.fx-rates.sync-sama');
+    Route::post('/accounting/fx-rates/convert', [CurrencyRateController::class, 'convert'])->name('accounting.fx-rates.convert');
 
     Route::get('/accounting/fx-revaluations', [FxRevaluationController::class, 'index'])->name('accounting.fx-revaluations.index');
     Route::get('/accounting/fx-revaluations/create', [FxRevaluationController::class, 'create'])->name('accounting.fx-revaluations.create');
