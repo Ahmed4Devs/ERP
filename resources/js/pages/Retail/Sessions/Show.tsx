@@ -10,6 +10,10 @@ import {
     Eye,
     Store,
     AlertCircle,
+    Printer,
+    FileText,
+    CreditCard,
+    Coins,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,11 +40,22 @@ interface PosOrder {
 interface PosSession {
     id: string;
     session_number: string;
+    z_report_number?: string;
+    z_report_sequence?: number;
     status: 'open' | 'closed';
     opening_cash: string;
     closing_cash?: string;
     expected_cash: string;
     cash_difference: string;
+    total_orders_count?: number;
+    total_gross_sales?: string;
+    total_discounts?: string;
+    total_net_sales?: string;
+    total_tax?: string;
+    total_cash_sales?: string;
+    total_card_sales?: string;
+    difference_journal_entry_id?: string;
+    difference_journal_entry?: { id: string; entry_number: string };
     opened_at: string;
     closed_at?: string;
     notes?: string;
@@ -52,11 +67,13 @@ interface PosSession {
         branch?: { name: string };
     };
     user?: { name: string };
+    closed_by_user?: { name: string };
     orders: PosOrder[];
 }
 
 interface Props {
     posSession: PosSession;
+    reportPreview?: any;
 }
 
 export default function PosSessionShow({ posSession }: Props) {
@@ -82,7 +99,7 @@ export default function PosSessionShow({ posSession }: Props) {
     const previewDiff = countedNum - expectedNum;
 
     return (
-        <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
+        <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto" dir={isRtl ? 'rtl' : 'ltr'}>
             <Head title={`POS Session - #${posSession.session_number}`} />
 
             {/* Back & Title Header */}
@@ -94,20 +111,27 @@ export default function PosSessionShow({ posSession }: Props) {
                         </Link>
                     </Button>
                     <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 font-mono">
                                 #{posSession.session_number}
                             </h1>
                             <span
                                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                     isOpen
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : 'bg-neutral-100 text-neutral-700'
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                                        : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300'
                                 }`}
                             >
                                 <span className={`h-1.5 w-1.5 rounded-full ${isOpen ? 'bg-emerald-600 animate-pulse' : 'bg-neutral-400'}`} />
-                                {isOpen ? (isRtl ? 'وردية مفتوحة' : 'Open Shift') : (isRtl ? 'مقفلة ومرحلة' : 'Closed & Reconciled')}
+                                {isOpen ? (isRtl ? 'وردية مفتوحة نشطة' : 'Active Open Shift') : (isRtl ? 'مقفلة ومرحلة مالياً' : 'Closed & Reconciled')}
                             </span>
+
+                            {posSession.z_report_number && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-400 dark:border-indigo-800">
+                                    <FileText className="h-3 w-3" />
+                                    {posSession.z_report_number}
+                                </span>
+                            )}
                         </div>
                         <p className="text-sm text-neutral-500 mt-0.5">
                             {posSession.terminal?.name} ({posSession.terminal?.code}) &bull; {posSession.user?.name}
@@ -115,29 +139,44 @@ export default function PosSessionShow({ posSession }: Props) {
                     </div>
                 </div>
 
-                {isOpen && (
-                    <div className="flex items-center gap-3">
-                        <Button asChild variant="outline" className="gap-2">
-                            <Link href={`/retail/pos/${posSession.terminal.id}`}>
-                                <Store className="h-4 w-4" />
-                                <span>{isRtl ? 'متابعة البيع بالكاشير' : 'Open Register'}</span>
-                            </Link>
+                <div className="flex items-center gap-3 flex-wrap">
+                    {isOpen ? (
+                        <>
+                            <Button asChild variant="outline" className="gap-2">
+                                <a href={`/retail/sessions/${posSession.id}/x-report`} target="_blank" rel="noreferrer">
+                                    <Printer className="h-4 w-4" />
+                                    <span>{isRtl ? 'قراءة الوردية (X-Report)' : 'View X-Report'}</span>
+                                </a>
+                            </Button>
+                            <Button asChild variant="outline" className="gap-2">
+                                <Link href={`/retail/pos/${posSession.terminal.id}`}>
+                                    <Store className="h-4 w-4" />
+                                    <span>{isRtl ? 'شاشة الكاشير والبيع' : 'Open Register'}</span>
+                                </Link>
+                            </Button>
+                            <Button
+                                onClick={() => setIsCloseModalOpen(true)}
+                                className="gap-2 bg-rose-600 hover:bg-rose-700 text-white"
+                            >
+                                <Lock className="h-4 w-4" />
+                                <span>{isRtl ? 'جرد وإقفال الوردية (Z-Report)' : 'Reconcile & Close (Z-Report)'}</span>
+                            </Button>
+                        </>
+                    ) : (
+                        <Button asChild className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+                            <a href={`/retail/sessions/${posSession.id}/z-report`} target="_blank" rel="noreferrer">
+                                <Printer className="h-4 w-4" />
+                                <span>{isRtl ? 'طباعة تقرير الإغلاق المالي (Z-Report)' : 'Print Fiscal Z-Report'}</span>
+                            </a>
                         </Button>
-                        <Button
-                            onClick={() => setIsCloseModalOpen(true)}
-                            className="gap-2 bg-rose-600 hover:bg-rose-700 text-white"
-                        >
-                            <Lock className="h-4 w-4" />
-                            <span>{isRtl ? 'جرد وإقفال الوردية' : 'Reconcile & Close Shift'}</span>
-                        </Button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
-            {/* Reconciliation Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {/* Reconciliation & Drawer Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-                    <p className="text-xs text-neutral-500">{isRtl ? 'العهدة الافتتاحية' : 'Opening Float'}</p>
+                    <p className="text-xs text-neutral-500">{isRtl ? 'العهدة الافتتاحية للصندوق' : 'Opening Float'}</p>
                     <p className="text-xl font-bold font-mono text-neutral-900 dark:text-neutral-100 mt-1">
                         {Number(posSession.opening_cash).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
                     </p>
@@ -145,7 +184,7 @@ export default function PosSessionShow({ posSession }: Props) {
                 </div>
 
                 <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
-                    <p className="text-xs text-neutral-500">{isRtl ? 'النقدية المتوقعة في الصندوق' : 'Expected Drawer Cash'}</p>
+                    <p className="text-xs text-neutral-500">{isRtl ? 'النقدية المتوقعة في الدرج' : 'Expected Drawer Cash'}</p>
                     <p className="text-xl font-bold font-mono text-indigo-600 dark:text-indigo-400 mt-1">
                         {Number(posSession.expected_cash).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
                     </p>
@@ -174,8 +213,47 @@ export default function PosSessionShow({ posSession }: Props) {
                         {Number(posSession.cash_difference).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
                     </p>
                     <p className="text-[11px] text-neutral-400 mt-1">
-                        {Number(posSession.cash_difference) === 0 ? (isRtl ? 'مطابق تماماً' : 'Balanced') : (isRtl ? 'يوجد فرق' : 'Variance recorded')}
+                        {Number(posSession.cash_difference) === 0 ? (isRtl ? 'مطابق تماماً' : 'Balanced') : (isRtl ? 'تم ترحيل الفرق محاسبياً' : 'GL Variance posted')}
                     </p>
+                </div>
+            </div>
+
+            {/* Financial Performance Summary (Net, VAT 15%, Cash vs Card) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Coins className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-neutral-500">{isRtl ? 'المبيعات النقدية (Cash)' : 'Cash Sales'}</p>
+                        <p className="text-lg font-bold font-mono text-neutral-900 dark:text-neutral-100">
+                            {Number(posSession.total_cash_sales ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
+                        </p>
+                    </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
+                        <CreditCard className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-neutral-500">{isRtl ? 'مبيعات الشبكة ومدى (Card)' : 'Card / Mada Sales'}</p>
+                        <p className="text-lg font-bold font-mono text-neutral-900 dark:text-neutral-100">
+                            {Number(posSession.total_card_sales ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
+                        </p>
+                    </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                        <Receipt className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-neutral-500">{isRtl ? 'ضريبة القيمة المضافة المحصلة (15% VAT)' : '15% VAT Collected'}</p>
+                        <p className="text-lg font-bold font-mono text-neutral-900 dark:text-neutral-100">
+                            {Number(posSession.total_tax ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -219,7 +297,7 @@ export default function PosSessionShow({ posSession }: Props) {
                                         </td>
                                         <td className="px-6 py-3.5">
                                             <span className="capitalize px-2 py-0.5 rounded text-xs font-mono font-medium bg-neutral-100 dark:bg-neutral-800">
-                                                {order.payment_method}
+                                                {order.payment_method === 'cash' ? (isRtl ? 'نقداً Cash' : 'Cash') : (isRtl ? 'شبكة / مدى' : 'Card')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-3.5 text-xs font-mono text-neutral-500">
@@ -250,12 +328,12 @@ export default function PosSessionShow({ posSession }: Props) {
                     <div className="w-full max-w-md rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 shadow-2xl">
                         <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
                             <Lock className="text-rose-600" />
-                            {isRtl ? 'مطابقة وإقفال وردية الكاشير' : 'Reconcile & Close Shift'}
+                            {isRtl ? 'مطابقة وإقفال وردية الكاشير (Z-Report)' : 'Reconcile & Close Shift'}
                         </h3>
                         <p className="text-xs text-neutral-500 mt-1">
                             {isRtl
-                                ? 'أدخل النقدية الفعلية الموجودة في الصندوق لإجراء المطابقة والترحيل النهائي'
-                                : 'Enter counted cash in drawer to reconcile and close shift permanently'}
+                                ? 'أدخل النقدية الفعلية الموجودة في الصندوق لإجراء المطابقة، توليد تقرير Z-Report، والترحيل المحاسبي النهائي'
+                                : 'Enter counted cash in drawer to reconcile, generate Z-Report, and close shift permanently'}
                         </p>
 
                         <form onSubmit={handleCloseShift} className="mt-4 space-y-4">
@@ -282,14 +360,14 @@ export default function PosSessionShow({ posSession }: Props) {
 
                             <div className={`p-3 rounded-xl flex justify-between items-center text-sm ${
                                 previewDiff < 0
-                                    ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                                    ? 'bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900'
                                     : previewDiff > 0
-                                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                                    : 'bg-neutral-100 text-neutral-800'
+                                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900'
+                                    : 'bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200'
                             }`}>
                                 <span className="font-medium">{isRtl ? 'فرق المطابقة المتوقع:' : 'Calculated Variance:'}</span>
                                 <span className="font-mono font-bold">
-                                    {previewDiff.toFixed(2)} SAR
+                                    {previewDiff > 0 ? `+${previewDiff.toFixed(2)}` : previewDiff.toFixed(2)} SAR
                                 </span>
                             </div>
 
@@ -319,7 +397,7 @@ export default function PosSessionShow({ posSession }: Props) {
                                     type="submit"
                                     className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold"
                                 >
-                                    {isRtl ? 'تأكيد الإقفال النهائي' : 'Confirm Close'}
+                                    {isRtl ? 'تأكيد الإقفال وإصدار Z-Report' : 'Confirm Close & Issue Z-Report'}
                                 </Button>
                             </div>
                         </form>

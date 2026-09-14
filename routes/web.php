@@ -497,6 +497,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/retail/sessions', [PosSessionController::class, 'store'])->name('retail.sessions.store');
         Route::get('/retail/sessions/{session}', [PosSessionController::class, 'show'])->name('retail.sessions.show');
         Route::post('/retail/sessions/{session}/close', [PosSessionController::class, 'close'])->name('retail.sessions.close');
+        Route::get('/retail/sessions/{session}/x-report', [PosSessionController::class, 'xReport'])->name('retail.sessions.x-report');
+        Route::get('/retail/sessions/{session}/z-report', [PosSessionController::class, 'zReport'])->name('retail.sessions.z-report');
 
         Route::post('/retail/orders', [PosOrderController::class, 'store'])->name('retail.orders.store');
         Route::get('/retail/orders/{order}', [PosOrderController::class, 'show'])->name('retail.orders.show');
