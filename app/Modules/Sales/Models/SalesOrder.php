@@ -24,6 +24,7 @@ class SalesOrder extends Model
         'order_number',
         'quotation_id',
         'customer_id',
+        'sales_rep_id',
         'order_date',
         'delivery_date',
         'subtotal',

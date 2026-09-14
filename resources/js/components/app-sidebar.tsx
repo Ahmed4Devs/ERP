@@ -145,6 +145,11 @@ export function AppSidebar() {
                     href: '/trade/promotions',
                     icon: Percent,
                 },
+                {
+                    title: t('nav.salesCommissions', 'عمولات مندوبي المبيعات'),
+                    href: '/trade/commissions',
+                    icon: HandCoins,
+                },
             ],
         },
         {

@@ -71,6 +71,7 @@ use App\Modules\Sales\Http\Controllers\CustomerPortalController;
 use App\Modules\Sales\Http\Controllers\SalesOrderController;
 use App\Modules\Sales\Http\Controllers\SalesQuotationController;
 use App\Modules\Support\Http\Controllers\SupportTicketController;
+use App\Modules\Trade\Http\Controllers\CommissionController;
 use App\Modules\Trade\Http\Controllers\PriceListController;
 use App\Modules\Trade\Http\Controllers\PromotionController;
 use App\Modules\Treasury\Http\Controllers\BankGuaranteeController;
@@ -558,6 +559,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/trade/pricelists', [PriceListController::class, 'store'])->name('trade.pricelists.store');
     Route::get('/trade/pricelists/{priceList}', [PriceListController::class, 'show'])->name('trade.pricelists.show');
     Route::post('/trade/resolve-price', [PriceListController::class, 'resolvePrice'])->name('trade.resolve-price');
+
+    // Trade Promotions & BOGO
+    Route::get('/trade/promotions', [PromotionController::class, 'index'])->name('trade.promotions.index');
+    Route::get('/trade/promotions/create', [PromotionController::class, 'create'])->name('trade.promotions.create');
+    Route::post('/trade/promotions', [PromotionController::class, 'store'])->name('trade.promotions.store');
+    Route::post('/trade/promotions/{promotion}/toggle', [PromotionController::class, 'toggleStatus'])->name('trade.promotions.toggle');
+    Route::post('/trade/promotions/evaluate', [PromotionController::class, 'evaluate'])->name('trade.promotions.evaluate');
+
+    // Sales Representatives & Commission Engine
+    Route::get('/trade/commissions', [CommissionController::class, 'index'])->name('trade.commissions.index');
+    Route::get('/trade/commissions/create', [CommissionController::class, 'create'])->name('trade.commissions.create');
+    Route::post('/trade/commissions/preview', [CommissionController::class, 'preview'])->name('trade.commissions.preview');
+    Route::post('/trade/commissions', [CommissionController::class, 'store'])->name('trade.commissions.store');
+    Route::get('/trade/commissions/{commissionRun}', [CommissionController::class, 'show'])->name('trade.commissions.show');
+    Route::post('/trade/commissions/{commissionRun}/settle', [CommissionController::class, 'settle'])->name('trade.commissions.settle');
+    Route::get('/trade/commissions/{commissionRun}/lines/{line}/print', [CommissionController::class, 'printStatement'])->name('trade.commissions.print-statement');
+    Route::post('/trade/commissions/plans', [CommissionController::class, 'storePlan'])->name('trade.commissions.plans.store');
+    Route::post('/trade/commissions/representatives', [CommissionController::class, 'storeRepresentative'])->name('trade.commissions.representatives.store');
 
     // Contracting Progress Claims
     Route::middleware('module:contracting')->group(function () {

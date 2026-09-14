@@ -25,6 +25,7 @@ class ServiceInvoice extends Model
         'company_id',
         'branch_id',
         'party_id',
+        'sales_rep_id',
         'sales_order_id',
         'invoice_number',
         'date',
