@@ -18,6 +18,7 @@ use App\Modules\Accounting\Http\Controllers\VatReturnController;
 use App\Modules\Assets\Http\Controllers\DepreciationController;
 use App\Modules\Assets\Http\Controllers\FixedAssetController;
 use App\Modules\Assets\Http\Controllers\FixedAssetDisposalController;
+use App\Modules\Assets\Http\Controllers\ZatcaTaxAssetScheduleController;
 use App\Modules\Contracting\Http\Controllers\ContractingClaimController;
 use App\Modules\Contracts\Http\Controllers\ContractController;
 use App\Modules\CRM\Http\Controllers\LeadController;
@@ -137,6 +138,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/settings/zatca/csr', [ZatcaIntegrationController::class, 'generateCsr'])->name('settings.zatca.csr.generate');
     Route::post('/settings/zatca/csid', [ZatcaIntegrationController::class, 'requestCsid'])->name('settings.zatca.csid.request');
     Route::post('/settings/zatca/compliance', [ZatcaIntegrationController::class, 'runCompliance'])->name('settings.zatca.compliance.run');
+
+    // ZATCA Statutory Asset Tax Depreciation & Zakat Schedule (Article 17)
+    Route::get('/assets/zatca-tax-schedule', [ZatcaTaxAssetScheduleController::class, 'index'])->name('assets.zatca-tax-schedule.index');
+    Route::get('/assets/zatca-tax-schedule/export', [ZatcaTaxAssetScheduleController::class, 'exportCsv'])->name('assets.zatca-tax-schedule.export');
+    Route::put('/assets/zatca-tax-schedule/assets/{asset}', [ZatcaTaxAssetScheduleController::class, 'updateAssetTaxGroup'])->name('assets.zatca-tax-schedule.update-group');
 
     // Receipts & Collections
     Route::get('/receipts', [ReceiptController::class, 'index'])->name('receipts.index');

@@ -4,6 +4,10 @@ use App\Models\User;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Models\ServiceInvoice;
+use App\Modules\Assets\Models\AssetCategory;
+use App\Modules\Assets\Models\FixedAsset;
+use App\Modules\Assets\Models\FixedAssetDisposal;
+use App\Modules\Assets\Services\ZatcaTaxDepreciationService;
 use App\Modules\HR\Models\Department;
 use App\Modules\HR\Models\Designation;
 use App\Modules\HR\Models\Employee;
@@ -278,4 +282,179 @@ test('b2b customer self service portal allows clients to view statement, invoice
     // New token should work
     $newTokenResp = $this->get(route('portal.dashboard', ['token' => $profile->portal_token]));
     $newTokenResp->assertOk();
+});
+
+test('zatca statutory asset tax depreciation and zakat schedule engine computes 5 groups declining pool formula and exports audit csv', function () {
+    // Clean any seeded assets for deterministic calculation
+    FixedAsset::where('company_id', $this->company->id)->delete();
+
+    // 1. Create an Asset Category
+    $category = AssetCategory::firstOrCreate(
+        ['company_id' => $this->company->id, 'code' => 'BUILDINGS'],
+        [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Corporate Buildings',
+            'name_ar' => 'المباني الإدارية',
+            'depreciation_method' => 'straight_line',
+            'useful_life_months' => 360,
+            'zatca_tax_group' => 'group_1',
+        ]
+    );
+
+    // 2. Asset in Group 1 (Buildings 3%): Prior year purchase, opening base 1,000,000 SAR
+    $buildingAsset = FixedAsset::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'category_id' => $category->id,
+        'asset_tag' => 'AST-BLD-001',
+        'name' => 'HQ Main Building',
+        'name_ar' => 'المبنى الرئيسي للشركة',
+        'purchase_date' => '2024-01-15',
+        'in_service_date' => '2024-02-01',
+        'acquisition_cost' => 1000000.00,
+        'salvage_value' => 0.00,
+        'useful_life_months' => 360,
+        'depreciation_method' => 'straight_line',
+        'accumulated_depreciation' => 50000.00,
+        'net_book_value' => 950000.00,
+        'zatca_tax_group' => 'group_1',
+        'zatca_tax_base' => 950000.00,
+        'status' => 'active',
+    ]);
+
+    // 3. Asset in Group 3 (Machinery & Software 25%): Purchased in current year (Addition = 200,000 SAR)
+    $serverAsset = FixedAsset::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'category_id' => $category->id,
+        'asset_tag' => 'AST-IT-101',
+        'name' => 'Data Center Blade Servers',
+        'name_ar' => 'خوادم مركز البيانات',
+        'purchase_date' => '2026-03-10',
+        'in_service_date' => '2026-03-15',
+        'acquisition_cost' => 200000.00,
+        'salvage_value' => 0.00,
+        'useful_life_months' => 36,
+        'depreciation_method' => 'straight_line',
+        'accumulated_depreciation' => 0.00,
+        'net_book_value' => 200000.00,
+        'zatca_tax_group' => 'group_3',
+        'status' => 'active',
+    ]);
+
+    // 4. Asset in Group 5 (Other / Passenger Vehicles 10%): Opening base 100,000 SAR with Disposal of 30,000 SAR
+    $carAsset = FixedAsset::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'category_id' => $category->id,
+        'asset_tag' => 'AST-CAR-501',
+        'name' => 'Executive Transport Vehicle',
+        'name_ar' => 'مركبة نقل تنفيذية',
+        'purchase_date' => '2025-06-01',
+        'in_service_date' => '2025-06-01',
+        'acquisition_cost' => 120000.00,
+        'salvage_value' => 20000.00,
+        'useful_life_months' => 48,
+        'depreciation_method' => 'straight_line',
+        'accumulated_depreciation' => 20000.00,
+        'net_book_value' => 100000.00,
+        'zatca_tax_group' => 'group_5',
+        'zatca_tax_base' => 100000.00,
+        'status' => 'active',
+    ]);
+
+    // Create a posted disposal for car asset with proceeds 30,000 SAR
+    FixedAssetDisposal::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'fixed_asset_id' => $carAsset->id,
+        'disposal_number' => 'DISP-2026-001',
+        'disposal_date' => '2026-07-20',
+        'disposal_type' => 'sale',
+        'acquisition_cost' => 120000.00,
+        'accumulated_depreciation' => 35000.00,
+        'net_book_value' => 85000.00,
+        'proceeds' => 30000.00,
+        'gain_loss_amount' => 55000.00,
+        'gain_loss_type' => 'loss',
+        'status' => 'posted',
+        'posted_at' => now(),
+    ]);
+
+    // 5. Test Service Calculation
+    $taxService = app(ZatcaTaxDepreciationService::class);
+    $schedule = $taxService->computeSchedule($this->company->id, 2026);
+
+    // Verify Group 1:
+    // Opening 950,000, Additions 0, Disposals 0 -> Statutory Base = 950,000. Tax Depr @ 3% = 28,500.00.
+    // Closing Base = 950,000 - 28,500 = 921,500.00.
+    $g1 = $schedule['groups']['group_1'];
+    expect($g1['opening_base'])->toBe(950000.00)
+        ->and($g1['rate'])->toBe(0.03)
+        ->and($g1['tax_depreciation'])->toBe(28500.00)
+        ->and($g1['closing_base'])->toBe(921500.00);
+
+    // Verify Group 3:
+    // Opening 0, Additions 200,000, Disposals 0 -> Statutory Base = 0 + 0.5 * 200,000 = 100,000.
+    // Tax Depr @ 25% = 25,000.00.
+    // Closing Base = 0 + 200,000 - 25,000 = 175,000.00.
+    $g3 = $schedule['groups']['group_3'];
+    expect($g3['additions'])->toBe(200000.00)
+        ->and($g3['statutory_base'])->toBe(100000.00)
+        ->and($g3['rate'])->toBe(0.25)
+        ->and($g3['tax_depreciation'])->toBe(25000.00)
+        ->and($g3['closing_base'])->toBe(175000.00);
+
+    // Verify Group 5:
+    // Opening 100,000, Additions 0, Disposals 30,000 -> Statutory Base = 100,000 + 0.5 * (-30,000) = 85,000.
+    // Tax Depr @ 10% = 8,500.00.
+    // Closing Base = 100,000 - 30,000 - 8,500 = 61,500.00.
+    $g5 = $schedule['groups']['group_5'];
+    expect($g5['opening_base'])->toBe(100000.00)
+        ->and($g5['disposals'])->toBe(30000.00)
+        ->and($g5['statutory_base'])->toBe(85000.00)
+        ->and($g5['rate'])->toBe(0.10)
+        ->and($g5['tax_depreciation'])->toBe(8500.00)
+        ->and($g5['closing_base'])->toBe(61500.00);
+
+    // Total Tax Depreciation across all groups = 28,500 + 25,000 + 8,500 = 62,000.00 SAR
+    expect($schedule['totals']['tax_depreciation'])->toBe(62000.00);
+
+    // 6. Test Controller UI Endpoint
+    $pageResp = $this->actingAs($this->user)->get(route('assets.zatca-tax-schedule.index', ['tax_year' => 2026]));
+    $pageResp->assertOk();
+    $pageResp->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('Assets/ZatcaTaxSchedule/Index')
+        ->where('taxYear', 2026)
+        ->has('schedule.groups.group_1')
+        ->has('schedule.groups.group_2')
+        ->has('schedule.groups.group_3')
+        ->has('schedule.groups.group_4')
+        ->has('schedule.groups.group_5')
+        ->where('schedule.totals.tax_depreciation', 62000)
+        ->has('assets.data')
+    );
+
+    // 7. Test Updating Asset Statutory Tax Group
+    $updateResp = $this->actingAs($this->user)->put(
+        route('assets.zatca-tax-schedule.update-group', ['asset' => $buildingAsset->id]),
+        ['zatca_tax_group' => 'group_2', 'zatca_tax_base' => 900000.00]
+    );
+    $updateResp->assertRedirect();
+    $buildingAsset->refresh();
+    expect($buildingAsset->zatca_tax_group)->toBe('group_2')
+        ->and((float) $buildingAsset->zatca_tax_base)->toBe(900000.00);
+
+    // 8. Test Statutory CSV Export Endpoint
+    $exportResp = $this->actingAs($this->user)->get(route('assets.zatca-tax-schedule.export', ['tax_year' => 2026]));
+    $exportResp->assertOk();
+    expect($exportResp->headers->get('content-type'))->toContain('text/csv');
+    $csvContent = $exportResp->streamedContent();
+    expect($csvContent)->toContain('المجموعة الأولى')
+        ->and($csvContent)->toContain('المجموعة الثالثة')
+        ->and($csvContent)->toContain('المادة 17');
 });

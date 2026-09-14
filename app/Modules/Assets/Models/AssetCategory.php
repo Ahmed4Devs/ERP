@@ -22,6 +22,7 @@ class AssetCategory extends Model
         'name',
         'name_ar',
         'depreciation_method',
+        'zatca_tax_group',
         'useful_life_months',
         'asset_account_id',
         'accumulated_depreciation_account_id',

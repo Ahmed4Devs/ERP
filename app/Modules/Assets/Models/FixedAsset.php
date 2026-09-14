@@ -32,8 +32,10 @@ class FixedAsset extends Model
         'salvage_value',
         'useful_life_months',
         'depreciation_method',
+        'zatca_tax_group',
         'accumulated_depreciation',
         'net_book_value',
+        'zatca_tax_base',
         'status', // active, fully_depreciated, disposed
         'asset_account_id',
         'accumulated_depreciation_account_id',
@@ -48,6 +50,7 @@ class FixedAsset extends Model
         'useful_life_months' => 'integer',
         'accumulated_depreciation' => 'decimal:6',
         'net_book_value' => 'decimal:6',
+        'zatca_tax_base' => 'decimal:6',
     ];
 
     public function branch(): BelongsTo
