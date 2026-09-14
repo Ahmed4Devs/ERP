@@ -63,6 +63,7 @@ use App\Modules\Purchasing\Http\Controllers\PurchaseRequisitionController;
 use App\Modules\Purchasing\Http\Controllers\SupplierPortalController;
 use App\Modules\Purchasing\Http\Controllers\VendorBillController;
 use App\Modules\Purchasing\Http\Controllers\VendorPaymentController;
+use App\Modules\Retail\Http\Controllers\LoyaltyController;
 use App\Modules\Retail\Http\Controllers\PosOrderController;
 use App\Modules\Retail\Http\Controllers\PosSessionController;
 use App\Modules\Retail\Http\Controllers\PosTerminalController;
@@ -577,6 +578,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/trade/commissions/{commissionRun}/lines/{line}/print', [CommissionController::class, 'printStatement'])->name('trade.commissions.print-statement');
     Route::post('/trade/commissions/plans', [CommissionController::class, 'storePlan'])->name('trade.commissions.plans.store');
     Route::post('/trade/commissions/representatives', [CommissionController::class, 'storeRepresentative'])->name('trade.commissions.representatives.store');
+
+    // Customer Loyalty Points & Rewards Engine
+    Route::get('/retail/loyalty', [LoyaltyController::class, 'index'])->name('retail.loyalty.index');
+    Route::get('/retail/loyalty/programs', [LoyaltyController::class, 'programs'])->name('retail.loyalty.programs');
+    Route::post('/retail/loyalty/programs', [LoyaltyController::class, 'storeProgram'])->name('retail.loyalty.programs.store');
+    Route::post('/retail/loyalty/accounts', [LoyaltyController::class, 'storeAccount'])->name('retail.loyalty.accounts.store');
+    Route::get('/retail/loyalty/accounts/{account}', [LoyaltyController::class, 'show'])->name('retail.loyalty.show');
+    Route::post('/retail/loyalty/accounts/{account}/adjust', [LoyaltyController::class, 'adjustPoints'])->name('retail.loyalty.adjust');
+    Route::post('/retail/loyalty/calculate', [LoyaltyController::class, 'calculateRedemption'])->name('retail.loyalty.calculate');
+    Route::get('/retail/loyalty/accounts/{account}/card-print', [LoyaltyController::class, 'cardPrint'])->name('retail.loyalty.card-print');
 
     // Contracting Progress Claims
     Route::middleware('module:contracting')->group(function () {

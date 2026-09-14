@@ -493,6 +493,11 @@ export function AppSidebar() {
                     moduleKey: 'retail_pos',
                 },
                 {
+                    title: t('nav.loyaltyRewards', 'برامج الولاء ونقاط المكافآت'),
+                    href: '/retail/loyalty',
+                    icon: Award,
+                },
+                {
                     title: t('nav.tradePriceLists', 'قوائم الأسعار وشرائح الجملة'),
                     href: '/trade/pricelists',
                     icon: Percent,
