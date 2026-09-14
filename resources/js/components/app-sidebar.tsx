@@ -48,6 +48,7 @@ import {
     Archive,
     Barcode,
     Sliders,
+    Wallet,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -391,6 +392,11 @@ export function AppSidebar() {
                     title: t('nav.loans', 'سلف وقروض الموظفين'),
                     href: '/hr/loans',
                     icon: HandCoins,
+                },
+                {
+                    title: t('nav.custodies', 'عهد الموظفين وتسويتها الضريبية'),
+                    href: '/hr/custodies',
+                    icon: Wallet,
                 },
                 {
                     title: t('nav.endOfService', 'مكافأة نهاية الخدمة والمخالصة'),

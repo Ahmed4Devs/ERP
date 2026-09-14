@@ -27,6 +27,7 @@ use App\Modules\Governance\Http\Controllers\ApprovalWorkflowController;
 use App\Modules\HR\Http\Controllers\AttendanceController;
 use App\Modules\HR\Http\Controllers\DepartmentController;
 use App\Modules\HR\Http\Controllers\EmployeeController;
+use App\Modules\HR\Http\Controllers\EmployeeCustodyController;
 use App\Modules\HR\Http\Controllers\EmployeeLoanController;
 use App\Modules\HR\Http\Controllers\EndOfServiceController;
 use App\Modules\HR\Http\Controllers\LeaveRequestController;
@@ -379,6 +380,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/hr/loans/create', [EmployeeLoanController::class, 'create'])->name('hr.loans.create');
     Route::post('/hr/loans', [EmployeeLoanController::class, 'store'])->name('hr.loans.store');
     Route::get('/hr/loans/{loan}', [EmployeeLoanController::class, 'show'])->name('hr.loans.show');
+
+    // Employee Custodies & Advances
+    Route::get('/hr/custodies', [EmployeeCustodyController::class, 'index'])->name('hr.custodies.index');
+    Route::get('/hr/custodies/create', [EmployeeCustodyController::class, 'create'])->name('hr.custodies.create');
+    Route::post('/hr/custodies', [EmployeeCustodyController::class, 'store'])->name('hr.custodies.store');
+    Route::get('/hr/custodies/{custody}', [EmployeeCustodyController::class, 'show'])->name('hr.custodies.show');
+    Route::post('/hr/custodies/{custody}/disburse', [EmployeeCustodyController::class, 'disburse'])->name('hr.custodies.disburse');
+    Route::get('/hr/custodies/{custody}/settle', [EmployeeCustodyController::class, 'createSettlement'])->name('hr.custodies.settle.create');
+    Route::post('/hr/custodies/{custody}/settle', [EmployeeCustodyController::class, 'storeSettlement'])->name('hr.custodies.settle.store');
+    Route::get('/hr/custodies/settlements/{settlement}/print', [EmployeeCustodyController::class, 'printSettlement'])->name('hr.custodies.settlements.print');
 
     // End of Service Gratuity & Settlements
     Route::get('/hr/end-of-service', [EndOfServiceController::class, 'index'])->name('hr.end-of-service.index');
