@@ -62,6 +62,7 @@ use App\Modules\Retail\Http\Controllers\PosOrderController;
 use App\Modules\Retail\Http\Controllers\PosSessionController;
 use App\Modules\Retail\Http\Controllers\PosTerminalController;
 use App\Modules\Sales\Http\Controllers\CreditNoteController;
+use App\Modules\Sales\Http\Controllers\CustomerPortalController;
 use App\Modules\Sales\Http\Controllers\SalesOrderController;
 use App\Modules\Sales\Http\Controllers\SalesQuotationController;
 use App\Modules\Support\Http\Controllers\SupportTicketController;
@@ -75,6 +76,14 @@ Route::inertia('/', 'welcome')->name('home');
 
 Route::post('/switch-locale', [ContextController::class, 'switchLocale'])->name('context.locale');
 
+// B2B Customer Self-Service Portal (Public / Token-Secured)
+Route::prefix('portal/{token}')->name('portal.')->group(function () {
+    Route::get('/', [CustomerPortalController::class, 'dashboard'])->name('dashboard');
+    Route::get('/statement/export', [CustomerPortalController::class, 'exportStatement'])->name('statement.export');
+    Route::get('/invoices/{invoice}/print', [CustomerPortalController::class, 'printInvoice'])->name('invoice.print');
+    Route::get('/invoices/{invoice}/xml', [CustomerPortalController::class, 'downloadInvoiceXml'])->name('invoice.xml');
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
@@ -87,6 +96,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/customers', [PartyController::class, 'index'])->name('customers.index');
     Route::post('/customers', [PartyController::class, 'store'])->name('customers.store');
     Route::delete('/customers/{party}', [PartyController::class, 'destroy'])->name('customers.destroy');
+    Route::post('/customers/{profile}/regenerate-portal-token', [CustomerPortalController::class, 'regenerateToken'])->name('customers.regenerate-portal-token');
 
     // Accounting & Finance
     Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index');

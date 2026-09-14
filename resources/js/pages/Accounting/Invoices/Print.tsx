@@ -67,9 +67,10 @@ interface Props {
         ar: string;
         en: string;
     };
+    backUrl?: string;
 }
 
-export default function InvoicePrint({ invoice, company, qrCodeDataUri, amountInWords }: Props) {
+export default function InvoicePrint({ invoice, company, qrCodeDataUri, amountInWords, backUrl }: Props) {
     const { t, isRtl, locale } = useTranslation();
 
     const handlePrint = () => {
@@ -91,7 +92,7 @@ export default function InvoicePrint({ invoice, company, qrCodeDataUri, amountIn
             <div className="max-w-4xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 rounded-xl shadow-sm print:hidden">
                 <div className="flex items-center gap-3">
                     <Button asChild variant="outline" size="sm" className="gap-2">
-                        <Link href={`/invoices/${invoice.id}`}>
+                        <Link href={backUrl || `/invoices/${invoice.id}`}>
                             <BackIcon className="h-4 w-4" />
                             <span>{isRtl ? 'العودة للتفاصيل' : 'Back to Invoice'}</span>
                         </Link>

@@ -38,6 +38,14 @@ class PartyController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $parties->through(function ($party) {
+            foreach ($party->customerProfiles as $cp) {
+                $cp->ensurePortalToken();
+            }
+
+            return $party;
+        });
+
         return Inertia::render('MasterData/Customers/Index', [
             'parties' => $parties,
             'filters' => [

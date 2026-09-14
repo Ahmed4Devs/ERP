@@ -3,17 +3,22 @@
 use App\Models\User;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\Accounting\Models\ServiceInvoice;
 use App\Modules\HR\Models\Department;
 use App\Modules\HR\Models\Designation;
 use App\Modules\HR\Models\Employee;
 use App\Modules\HR\Services\SaudiEosbCalculatorService;
+use App\Modules\MasterData\Models\CustomerProfile;
+use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
 use App\Modules\Organization\Models\Company;
 use App\Modules\Platform\Models\Tenant;
+use App\Modules\Sales\Models\SalesOrder;
 use App\Shared\Context\CurrentCompany;
 use App\Shared\Context\CurrentTenant;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
 
@@ -158,4 +163,119 @@ test('saudi labor law end of service gratuity engine calculates articles 84 and 
     $exportResp = $this->actingAs($this->user)->get(route('hr.end-of-service.export-schedule'));
     $exportResp->assertOk();
     expect($exportResp->headers->get('content-type'))->toContain('text/csv');
+});
+
+test('b2b customer self service portal allows clients to view statement, invoices, orders and download zatca xml without employee login', function () {
+    // 1. Create a B2B Customer with CustomerProfile and secure portal token
+    $customerParty = Party::create([
+        'tenant_id' => $this->tenant->id,
+        'name' => 'Saudi Tech Enterprises Ltd',
+        'name_ar' => 'شركة المشاريع التقنية السعودية المحدودة',
+        'type' => 'customer',
+        'tax_id' => '310998877600003',
+        'email' => 'finance@sauditech.com',
+        'phone' => '+966501234567',
+        'status' => 'active',
+    ]);
+
+    $profile = CustomerProfile::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'party_id' => $customerParty->id,
+        'credit_limit' => 250000.00,
+        'payment_terms_days' => 45,
+        'currency' => 'SAR',
+        'is_active' => true,
+    ]);
+
+    $token = $profile->portal_token;
+    expect($token)->not->toBeEmpty();
+
+    // 2. Create a Sales Order for this customer
+    $order = SalesOrder::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'customer_id' => $customerParty->id,
+        'order_number' => 'SO-PORTAL-001',
+        'order_date' => now()->toDateString(),
+        'subtotal' => 40000.00,
+        'tax_amount' => 6000.00,
+        'total_amount' => 46000.00,
+        'currency' => 'SAR',
+        'status' => 'confirmed',
+        'invoicing_status' => 'partially_billed',
+    ]);
+
+    // 3. Create a posted ZATCA Service Invoice with mock XML
+    $sampleXml = '<?xml version="1.0" encoding="UTF-8"?><Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"><ID>INV-PORTAL-101</ID></Invoice>';
+    $invoice = ServiceInvoice::create([
+        'tenant_id' => $this->tenant->id,
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'party_id' => $customerParty->id,
+        'sales_order_id' => $order->id,
+        'invoice_number' => 'INV-PORTAL-101',
+        'date' => now()->toDateString(),
+        'due_date' => now()->addDays(45)->toDateString(),
+        'status' => 'posted',
+        'subtotal' => 20000.00,
+        'tax_rate' => 0.15,
+        'tax_amount' => 3000.00,
+        'total' => 23000.00,
+        'amount_paid' => 5000.00,
+        'balance_due' => 18000.00,
+        'currency' => 'SAR',
+        'zatca_status' => 'cleared',
+        'zatca_cleared_xml' => $sampleXml,
+    ]);
+
+    // 4. Test Public Portal Dashboard (Without Auth / Login)
+    $portalResp = $this->get(route('portal.dashboard', ['token' => $token]));
+    $portalResp->assertOk();
+    $portalResp->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('Portal/Customer/Dashboard')
+        ->where('portalToken', $token)
+        ->where('customer.name', 'Saudi Tech Enterprises Ltd')
+        ->where('metrics.credit_limit', 250000)
+        ->where('metrics.outstanding_balance', 18000)
+        ->where('metrics.available_credit', 232000)
+        ->has('invoices', 1)
+        ->has('orders', 1)
+        ->has('statement')
+    );
+
+    // 5. Test Customer Statement CSV Export (Public / Token-Secured)
+    $exportResp = $this->get(route('portal.statement.export', ['token' => $token]));
+    $exportResp->assertOk();
+    expect($exportResp->headers->get('content-type'))->toContain('text/csv');
+
+    // 6. Test Download ZATCA Compliant XML
+    $xmlResp = $this->get(route('portal.invoice.xml', ['token' => $token, 'invoice' => $invoice->id]));
+    $xmlResp->assertOk();
+    expect($xmlResp->headers->get('content-type'))->toContain('application/xml')
+        ->and($xmlResp->getContent())->toContain('<ID>INV-PORTAL-101</ID>');
+
+    // 7. Test Printable ZATCA Tax Invoice with QR Code
+    $printResp = $this->get(route('portal.invoice.print', ['token' => $token, 'invoice' => $invoice->id]));
+    $printResp->assertOk();
+    $printResp->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('Accounting/Invoices/Print')
+        ->has('qrCodeDataUri')
+        ->has('amountInWords.ar')
+        ->has('amountInWords.en')
+    );
+
+    // 8. Test Admin Regenerating Customer Portal Token
+    $adminResp = $this->actingAs($this->user)->post(route('customers.regenerate-portal-token', ['profile' => $profile->id]));
+    $adminResp->assertRedirect();
+    $profile->refresh();
+    expect($profile->portal_token)->not->toBe($token);
+
+    // Old token should now return 404
+    $oldTokenResp = $this->get(route('portal.dashboard', ['token' => $token]));
+    $oldTokenResp->assertNotFound();
+
+    // New token should work
+    $newTokenResp = $this->get(route('portal.dashboard', ['token' => $profile->portal_token]));
+    $newTokenResp->assertOk();
 });
