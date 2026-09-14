@@ -17,15 +17,23 @@ class LandedCostAllocation extends Model
         'goods_receipt_line_id',
         'product_id',
         'quantity',
+        'weight_kg',
+        'volume_cbm',
         'original_unit_cost',
         'allocated_amount',
+        'customs_duty_allocated',
+        'freight_allocated',
         'new_unit_cost',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:4',
+        'weight_kg' => 'decimal:4',
+        'volume_cbm' => 'decimal:4',
         'original_unit_cost' => 'decimal:4',
         'allocated_amount' => 'decimal:4',
+        'customs_duty_allocated' => 'decimal:4',
+        'freight_allocated' => 'decimal:4',
         'new_unit_cost' => 'decimal:4',
     ];
 

@@ -10,10 +10,22 @@ interface Props {
         voucher_number: string;
         date: string;
         status: 'draft' | 'posted' | 'cancelled';
-        allocation_method: 'by_value' | 'by_quantity';
+        allocation_method: 'by_value' | 'by_quantity' | 'by_weight' | 'by_volume';
+        customs_declaration_number?: string;
+        customs_declaration_date?: string;
+        port_of_entry?: string;
+        bill_of_lading?: string;
+        customs_broker_name?: string;
+        customs_duty_amount?: string;
+        customs_vat_amount?: string;
+        freight_amount?: string;
+        port_handling_amount?: string;
+        insurance_amount?: string;
+        other_charges_amount?: string;
         total_charges: string;
         notes?: string;
         createdBy?: { name: string };
+        customsBroker?: { name: string };
         receipts: Array<{
             id: string;
             receipt_number: string;
@@ -32,8 +44,12 @@ interface Props {
             id: string;
             product?: { name: string; sku: string };
             quantity: string;
+            weight_kg?: string;
+            volume_cbm?: string;
             original_unit_cost: string;
             allocated_amount: string;
+            customs_duty_allocated?: string;
+            freight_allocated?: string;
             new_unit_cost: string;
         }>;
         journalEntry?: {
@@ -143,6 +159,53 @@ export default function LandedCostsShow({ landedCost }: Props) {
                     </div>
                 </div>
 
+                {/* FASAH Saudi Customs Declaration Details */}
+                {landedCost.customs_declaration_number && (
+                    <div className="bg-card border border-amber-500/20 bg-amber-500/[0.02] rounded-xl p-5 shadow-sm space-y-3">
+                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                            <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                                    منصة فاسح FASAH
+                                </span>
+                                <h2 className="font-semibold text-foreground text-sm">
+                                    البيان الجمركي السعودي رقم: <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{landedCost.customs_declaration_number}</span>
+                                </h2>
+                            </div>
+                            <span className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full font-medium">
+                                معتمد ومطابق لـ ZATCA
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                            <div>
+                                <p className="text-muted-foreground">تاريخ البيان:</p>
+                                <p className="font-semibold font-mono mt-0.5">{landedCost.customs_declaration_date || '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-muted-foreground">منفذ الدخول الجمركي:</p>
+                                <p className="font-semibold mt-0.5">{landedCost.port_of_entry || '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-muted-foreground">بوليصة الشحن (B/L):</p>
+                                <p className="font-semibold font-mono mt-0.5">{landedCost.bill_of_lading || '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-muted-foreground">المخلص الجمركي:</p>
+                                <p className="font-semibold mt-0.5">{landedCost.customsBroker?.name || landedCost.customs_broker_name || '-'}</p>
+                            </div>
+                        </div>
+
+                        {Number(landedCost.customs_vat_amount) > 0 && (
+                            <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">ضريبة الواردات الجمركية 15% (المدرجة في الخانة 8 بإقرار زاتكا):</span>
+                                <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                                    {Number(landedCost.customs_vat_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} SAR
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Charges List */}
                 <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-3">
                     <h2 className="font-semibold text-foreground flex items-center gap-2">
@@ -160,7 +223,7 @@ export default function LandedCostsShow({ landedCost }: Props) {
                         </thead>
                         <tbody className="divide-y divide-border">
                             {landedCost.charges.map((c) => (
-                                <tr key={c.id}>
+                                <tr key={c.id} className="hover:bg-muted/30">
                                     <td className="py-2.5 px-3 font-medium uppercase text-indigo-600 dark:text-indigo-400">{c.cost_type}</td>
                                     <td className="py-2.5 px-3 text-muted-foreground">{c.description || '-'}</td>
                                     <td className="py-2.5 px-3">{c.vendor?.name || '-'}</td>

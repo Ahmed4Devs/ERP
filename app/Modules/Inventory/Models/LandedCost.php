@@ -4,6 +4,7 @@ namespace App\Modules\Inventory\Models;
 
 use App\Models\User;
 use App\Modules\Accounting\Models\JournalEntry;
+use App\Modules\MasterData\Models\Party;
 use App\Modules\Organization\Models\Branch;
 use App\Shared\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -27,6 +28,18 @@ class LandedCost extends Model
         'date',
         'status',
         'allocation_method',
+        'customs_declaration_number',
+        'customs_declaration_date',
+        'port_of_entry',
+        'bill_of_lading',
+        'customs_broker_id',
+        'customs_broker_name',
+        'customs_duty_amount',
+        'customs_vat_amount',
+        'freight_amount',
+        'port_handling_amount',
+        'insurance_amount',
+        'other_charges_amount',
         'total_charges',
         'journal_entry_id',
         'notes',
@@ -35,8 +48,20 @@ class LandedCost extends Model
 
     protected $casts = [
         'date' => 'date',
+        'customs_declaration_date' => 'date',
         'total_charges' => 'decimal:4',
+        'customs_duty_amount' => 'decimal:4',
+        'customs_vat_amount' => 'decimal:4',
+        'freight_amount' => 'decimal:4',
+        'port_handling_amount' => 'decimal:4',
+        'insurance_amount' => 'decimal:4',
+        'other_charges_amount' => 'decimal:4',
     ];
+
+    public function customsBroker(): BelongsTo
+    {
+        return $this->belongsTo(Party::class, 'customs_broker_id');
+    }
 
     public function branch(): BelongsTo
     {

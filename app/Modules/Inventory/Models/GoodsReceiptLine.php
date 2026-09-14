@@ -24,12 +24,16 @@ class GoodsReceiptLine extends Model
         'quantity',
         'unit_cost',
         'line_total',
+        'weight_kg',
+        'volume_cbm',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:6',
         'unit_cost' => 'decimal:6',
         'line_total' => 'decimal:6',
+        'weight_kg' => 'decimal:4',
+        'volume_cbm' => 'decimal:4',
     ];
 
     public function goodsReceipt(): BelongsTo

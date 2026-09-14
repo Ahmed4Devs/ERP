@@ -31,9 +31,10 @@ interface Props {
     goodsReceipts: GoodsReceipt[];
     accounts: Account[];
     vendors: Party[];
+    saudiPorts?: Array<{ code: string; name_ar: string; name_en: string; type: string }>;
 }
 
-export default function LandedCostsCreate({ goodsReceipts, accounts, vendors }: Props) {
+export default function LandedCostsCreate({ goodsReceipts, accounts, vendors, saudiPorts = [] }: Props) {
     const { t, isRtl } = useTranslation();
     const BackIcon = isRtl ? ArrowRight : ArrowLeft;
 
@@ -41,8 +42,20 @@ export default function LandedCostsCreate({ goodsReceipts, accounts, vendors }: 
         date: new Date().toISOString().split('T')[0],
         allocation_method: 'by_value',
         goods_receipt_ids: [] as string[],
+        customs_declaration_number: '',
+        customs_declaration_date: '',
+        port_of_entry: '',
+        bill_of_lading: '',
+        customs_broker_id: '',
+        customs_broker_name: '',
+        customs_duty_amount: '',
+        customs_vat_amount: '',
+        freight_amount: '',
+        port_handling_amount: '',
+        insurance_amount: '',
+        other_charges_amount: '',
         charges: [
-            { cost_type: 'customs', description: 'رسوم جمركية / Customs Duty', amount: '', vendor_party_id: '', expense_account_id: '' }
+            { cost_type: 'customs_duty', description: 'رسوم جمركية / Customs Duty', amount: '', vendor_party_id: '', expense_account_id: '' }
         ],
         notes: '',
     });
@@ -141,8 +154,10 @@ export default function LandedCostsCreate({ goodsReceipts, accounts, vendors }: 
                                     value={data.allocation_method}
                                     onChange={(e) => setData('allocation_method', e.target.value)}
                                 >
-                                    <option value="by_value">{t('landedCost.byValue', 'حسب القيمة (Value-based)')}</option>
-                                    <option value="by_quantity">{t('landedCost.byQuantity', 'حسب الكمية (Quantity-based)')}</option>
+                                    <option value="by_value">{t('landedCost.byValue', 'حسب القيمة (CIF Value)')}</option>
+                                    <option value="by_quantity">{t('landedCost.byQuantity', 'حسب الكمية (Quantity)')}</option>
+                                    <option value="by_weight">{t('landedCost.byWeight', 'حسب الوزن الإجمالي (Gross Weight - KG)')}</option>
+                                    <option value="by_volume">{t('landedCost.byVolume', 'حسب الحجم بالمتر المكعب (Volume - CBM)')}</option>
                                 </select>
                             </div>
 
@@ -151,10 +166,125 @@ export default function LandedCostsCreate({ goodsReceipts, accounts, vendors }: 
                                     {t('common.notes', 'ملاحظات')}
                                 </label>
                                 <Input
-                                    placeholder={t('landedCost.notesPlaceholder', 'رقم البوليصة أو الشحنة...')}
+                                    placeholder={t('landedCost.notesPlaceholder', 'ملاحظات إضافية حول الشحنة أو الاستيراد...')}
                                     value={data.notes}
                                     onChange={(e) => setData('notes', e.target.value)}
                                 />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* FASAH Saudi Customs Declaration Card */}
+                    <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+                        <div className="flex items-center justify-between border-b border-border pb-3">
+                            <h2 className="font-semibold text-foreground flex items-center gap-2">
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                                    فاسح
+                                </span>
+                                {t('landedCost.customsDeclaration', 'بيانات البيان الجمركي المعتمد (منصة فاسح FASAH / ZATCA)')}
+                            </h2>
+                            <span className="text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full font-medium">
+                                الامتثال الجمركي والضريبي السعودي
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                    رقم البيان الجمركي (FASAH No.)
+                                </label>
+                                <Input
+                                    placeholder="مثال: 2409151234"
+                                    value={data.customs_declaration_number}
+                                    onChange={(e) => setData('customs_declaration_number', e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                    تاريخ البيان الجمركي
+                                </label>
+                                <Input
+                                    type="date"
+                                    value={data.customs_declaration_date}
+                                    onChange={(e) => setData('customs_declaration_date', e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                    منفذ الدخول الجمركي (Port of Entry)
+                                </label>
+                                <select
+                                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    value={data.port_of_entry}
+                                    onChange={(e) => setData('port_of_entry', e.target.value)}
+                                >
+                                    <option value="">-- اختر منفذ الدخول --</option>
+                                    {saudiPorts.map((p) => (
+                                        <option key={p.code} value={p.name_ar}>
+                                            {p.name_ar} ({p.name_en})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                    رقم بوليصة الشحن (Bill of Lading / B/L)
+                                </label>
+                                <Input
+                                    placeholder="مثال: MAEU12345678"
+                                    value={data.bill_of_lading}
+                                    onChange={(e) => setData('bill_of_lading', e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                            <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                    المخلص الجمركي (Customs Broker)
+                                </label>
+                                <select
+                                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    value={data.customs_broker_id}
+                                    onChange={(e) => {
+                                        setData('customs_broker_id', e.target.value);
+                                        const vendor = vendors.find(v => v.id === e.target.value);
+                                        if (vendor) setData('customs_broker_name', vendor.name);
+                                    }}
+                                >
+                                    <option value="">-- اختر مكتب التخليص / المورد --</option>
+                                    {vendors.map((v) => (
+                                        <option key={v.id} value={v.id}>{v.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                    اسم المخلص الجمركي (يدوياً)
+                                </label>
+                                <Input
+                                    placeholder="اسم مكتب التخليص الجمركي"
+                                    value={data.customs_broker_name}
+                                    onChange={(e) => setData('customs_broker_name', e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                                    ضريبة الواردات الجمركية 15% (ZATCA Box 8)
+                                </label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={data.customs_vat_amount}
+                                    onChange={(e) => setData('customs_vat_amount', e.target.value)}
+                                />
+                                <span className="text-[10px] text-muted-foreground">تُثبت كمدخلات ضريبية مستردة بإقرار زاتكا</span>
                             </div>
                         </div>
                     </div>
