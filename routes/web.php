@@ -342,10 +342,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Batches & FEFO Tracking
     Route::get('/inventory/batches', [ProductBatchController::class, 'index'])->name('inventory.batches.index');
+    Route::get('/inventory/batches/expiry/dashboard', [ProductBatchController::class, 'expiryDashboard'])->name('inventory.batches.expiry-dashboard');
     Route::get('/inventory/batches/create', [ProductBatchController::class, 'create'])->name('inventory.batches.create');
     Route::post('/inventory/batches', [ProductBatchController::class, 'store'])->name('inventory.batches.store');
     Route::get('/inventory/batches/recommend/fefo', [ProductBatchController::class, 'fefoRecommendation'])->name('inventory.batches.fefo');
     Route::get('/inventory/batches/{batch}', [ProductBatchController::class, 'show'])->name('inventory.batches.show');
+    Route::post('/inventory/batches/{batch}/write-off', [ProductBatchController::class, 'writeOff'])->name('inventory.batches.write-off');
 
     // Serial Numbers & Warranty
     Route::get('/inventory/serials', [ProductSerialController::class, 'index'])->name('inventory.serials.index');

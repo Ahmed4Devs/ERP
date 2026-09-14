@@ -153,6 +153,12 @@ export default function BatchesIndex({ batches, metrics, warehouses, products, f
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Link href="/inventory/batches/expiry/dashboard">
+                        <Button variant="outline" className="flex items-center gap-2 border-red-200 text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400">
+                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                            لوحة مخاطر الصلاحية والشطب
+                        </Button>
+                    </Link>
                     <Link href="/inventory/batches/create">
                         <Button className="flex items-center gap-2">
                             <Plus className="w-4 h-4" />

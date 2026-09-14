@@ -2,6 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeftRight,
     ArrowDownUp,
+    AlertTriangle,
     BadgeDollarSign,
     Banknote,
     BarChart3,
@@ -200,6 +201,11 @@ export function AppSidebar() {
                     title: t('nav.batches', 'الدفعات وتواريخ الصلاحية (FEFO)'),
                     href: '/inventory/batches',
                     icon: Barcode,
+                },
+                {
+                    title: t('nav.batchExpiry', 'مخاطر الصلاحية والشطب (FEFO)'),
+                    href: '/inventory/batches/expiry/dashboard',
+                    icon: AlertTriangle,
                 },
                 {
                     title: t('nav.serials', 'الأرقام التسلسلية والضمان'),

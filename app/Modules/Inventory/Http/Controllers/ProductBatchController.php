@@ -3,6 +3,7 @@
 namespace App\Modules\Inventory\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Inventory\Actions\WriteOffExpiredBatchAction;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Inventory\Models\ProductBatch;
 use App\Modules\Inventory\Models\Warehouse;
@@ -181,5 +182,86 @@ class ProductBatchController extends Controller
         );
 
         return response()->json($recommendation);
+    }
+
+    public function expiryDashboard(Request $request): Response
+    {
+        $companyId = app(CurrentCompany::class)->id();
+
+        $batchesQuery = ProductBatch::where('company_id', $companyId)
+            ->where('current_qty', '>', 0)
+            ->whereNotNull('expiry_date')
+            ->with(['product:id,sku,name,name_ar', 'warehouse:id,code,name']);
+
+        $now = now();
+        $thirtyDays = now()->addDays(30);
+        $sixtyDays = now()->addDays(60);
+
+        // Fetch all active batches with expiry dates to compute risk statistics
+        $allBatches = (clone $batchesQuery)->get();
+
+        $expiredBatches = $allBatches->filter(fn ($b) => $b->expiry_date && $b->expiry_date->isPast());
+        $expiring30Batches = $allBatches->filter(fn ($b) => $b->expiry_date && $b->expiry_date->isFuture() && $b->expiry_date->lte($thirtyDays));
+        $expiring60Batches = $allBatches->filter(fn ($b) => $b->expiry_date && $b->expiry_date->gt($thirtyDays) && $b->expiry_date->lte($sixtyDays));
+        $safeBatches = $allBatches->filter(fn ($b) => $b->expiry_date && $b->expiry_date->gt($sixtyDays));
+
+        $calcValue = fn ($col) => $col->reduce(fn ($acc, $b) => bcadd($acc, bcmul((string) $b->current_qty, (string) ($b->unit_cost ?: ($b->product?->moving_average_cost ?: 0)), 6), 6), '0.000000');
+
+        $kpis = [
+            'expired_count' => $expiredBatches->count(),
+            'expired_value_sar' => (float) $calcValue($expiredBatches),
+            'expiring_30_count' => $expiring30Batches->count(),
+            'expiring_30_value_sar' => (float) $calcValue($expiring30Batches),
+            'expiring_60_count' => $expiring60Batches->count(),
+            'expiring_60_value_sar' => (float) $calcValue($expiring60Batches),
+            'safe_count' => $safeBatches->count(),
+            'safe_value_sar' => (float) $calcValue($safeBatches),
+            'total_risk_sar' => (float) bcadd($calcValue($expiredBatches), $calcValue($expiring30Batches), 6),
+        ];
+
+        // Filtered list for table
+        $urgency = $request->urgency;
+        $filteredBatches = $batchesQuery
+            ->when($urgency === 'expired', fn ($q) => $q->where('expiry_date', '<', $now))
+            ->when($urgency === '30_days', fn ($q) => $q->where('expiry_date', '>=', $now)->where('expiry_date', '<=', $thirtyDays))
+            ->when($urgency === '60_days', fn ($q) => $q->where('expiry_date', '>', $thirtyDays)->where('expiry_date', '<=', $sixtyDays))
+            ->when($request->warehouse_id, fn ($q) => $q->where('warehouse_id', $request->warehouse_id))
+            ->orderBy('expiry_date', 'asc')
+            ->paginate(15)
+            ->withQueryString();
+
+        $warehouses = Warehouse::where('company_id', $companyId)->where('is_active', true)->get(['id', 'code', 'name']);
+
+        return Inertia::render('Inventory/Batches/ExpiryDashboard', [
+            'batches' => $filteredBatches,
+            'kpis' => $kpis,
+            'warehouses' => $warehouses,
+            'filters' => [
+                'urgency' => $urgency,
+                'warehouse_id' => $request->warehouse_id,
+            ],
+        ]);
+    }
+
+    public function writeOff(Request $request, string $id, WriteOffExpiredBatchAction $writeOffAction): RedirectResponse
+    {
+        $validated = $request->validate([
+            'quantity' => 'nullable|numeric|min:0.0001',
+            'reason' => 'required|string|max:255',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $result = $writeOffAction->execute([
+            'batch_id' => $id,
+            'quantity' => $validated['quantity'] ?? null,
+            'reason' => $validated['reason'],
+            'notes' => $validated['notes'] ?? null,
+            'user_id' => auth()->id(),
+        ]);
+
+        $lossSar = number_format((float) $result['total_loss'], 2);
+
+        return redirect()->back()
+            ->with('success', "تم شطب وإتلاف الدفعة المنتهية وترحيل قيد الخسارة المحاسبي بمبلغ ({$lossSar} ريال) بنجاح.");
     }
 }
