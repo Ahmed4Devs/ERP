@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\HR\Models\Employee;
 use App\Modules\HR\Models\EndOfServiceSettlement;
 use App\Modules\HR\Services\EndOfServiceCalculator;
+use App\Modules\HR\Services\PostEndOfServiceAccrualAction;
+use App\Modules\HR\Services\SaudiEosbCalculatorService;
 use App\Modules\HR\Services\SettleEndOfServiceAction;
 use App\Modules\Localization\Services\QrCodeSvgService;
 use App\Modules\Localization\Services\TafqeetService;
@@ -18,12 +20,16 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EndOfServiceController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, SaudiEosbCalculatorService $saudiEosbService): Response
     {
         $companyId = app(CurrentCompany::class)->id();
+        $asOfDate = $request->query('as_of_date', now()->toDateString());
+
+        $liabilitySchedule = $saudiEosbService->getCompanyLiabilitySchedule($companyId, $asOfDate);
 
         $query = EndOfServiceSettlement::where('company_id', $companyId)
             ->with(['employee.designation', 'employee.department', 'branch'])
@@ -52,13 +58,50 @@ class EndOfServiceController extends Controller
         $metrics = [
             'total_settlements' => EndOfServiceSettlement::where('company_id', $companyId)->count(),
             'settled_count' => EndOfServiceSettlement::where('company_id', $companyId)->where('status', 'settled')->count(),
-            'total_payout' => EndOfServiceSettlement::where('company_id', $companyId)->where('status', 'settled')->sum('net_settlement_amount'),
+            'total_payout' => (float) EndOfServiceSettlement::where('company_id', $companyId)->where('status', 'settled')->sum('net_settlement_amount'),
         ];
 
         return Inertia::render('HR/EndOfService/Index', [
             'settlements' => $settlements,
             'metrics' => $metrics,
-            'filters' => $request->only(['status', 'search']),
+            'liabilitySchedule' => $liabilitySchedule,
+            'filters' => $request->only(['status', 'search', 'as_of_date']),
+        ]);
+    }
+
+    public function postAccrual(Request $request, PostEndOfServiceAccrualAction $action): RedirectResponse
+    {
+        $companyId = app(CurrentCompany::class)->id();
+        $validated = $request->validate([
+            'as_of_date' => 'nullable|date',
+            'amount' => 'nullable|numeric|min:0.01',
+        ]);
+
+        try {
+            $journalEntry = $action->execute(
+                $companyId,
+                $validated['as_of_date'] ?? null,
+                isset($validated['amount']) ? (float) $validated['amount'] : null
+            );
+
+            return back()->with('success', "End of Service provision posted to General Ledger successfully (Journal #{$journalEntry->entry_number}).");
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function exportSchedule(Request $request, SaudiEosbCalculatorService $saudiEosbService): StreamedResponse
+    {
+        $companyId = app(CurrentCompany::class)->id();
+        $asOfDate = $request->query('as_of_date', now()->toDateString());
+        $content = $saudiEosbService->generateScheduleCsv($companyId, $asOfDate);
+        $filename = "EOSB_Liability_Schedule_{$asOfDate}.csv";
+
+        return response()->streamDownload(function () use ($content): void {
+            echo $content;
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }
 

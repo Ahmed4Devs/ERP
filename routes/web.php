@@ -352,6 +352,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/hr/end-of-service/create', [EndOfServiceController::class, 'create'])->name('hr.end-of-service.create');
     Route::post('/hr/end-of-service/preview', [EndOfServiceController::class, 'previewCalculation'])->name('hr.end-of-service.preview');
     Route::post('/hr/end-of-service', [EndOfServiceController::class, 'store'])->name('hr.end-of-service.store');
+    Route::post('/hr/end-of-service/accrue', [EndOfServiceController::class, 'postAccrual'])->name('hr.end-of-service.accrue');
+    Route::get('/hr/end-of-service/export-schedule', [EndOfServiceController::class, 'exportSchedule'])->name('hr.end-of-service.export-schedule');
     Route::get('/hr/end-of-service/{settlement}', [EndOfServiceController::class, 'show'])->name('hr.end-of-service.show');
     Route::post('/hr/end-of-service/{settlement}/settle', [EndOfServiceController::class, 'settle'])->name('hr.end-of-service.settle');
     Route::get('/hr/end-of-service/{settlement}/print', [EndOfServiceController::class, 'print'])->name('hr.end-of-service.print');
